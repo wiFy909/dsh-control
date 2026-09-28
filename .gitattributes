@@ -1,0 +1,8 @@
+* text=auto
+*.sh text eol=lf
+*.command text eol=lf
+*.py text eol=lf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.png binary
+tests/golden/** whitespace=-blank-at-eol

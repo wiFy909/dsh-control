@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "source_sha256": "9e983b4f649c25c6ca0623a50be1a6e705fd8f49f756638b980fa13b40575ab6",
+  "compiler": "M/C/Z nonzero scanline, 4x area coverage",
+  "lods": {
+    "small": {
+      "pixels": 96,
+      "sha256": "bdd0a070063ec589a82e7f9cfc400ebcc73ae97d6fce2db7ea412d96c95e4fcd",
+      "sampling": "independent destination-space cubic flattening and area coverage"
+    },
+    "medium": {
+      "pixels": 192,
+      "sha256": "d686020d1643da3395ff09636015e051a44142f15b45001809c7e24f90df8469",
+      "sampling": "independent destination-space cubic flattening and area coverage"
+    },
+    "hero": {
+      "pixels": 384,
+      "sha256": "715aa0ec95af87237ce683f2cc35b8f49a7bdc19592e66488db3d55a0177fafb",
+      "sampling": "independent destination-space cubic flattening and area coverage"
+    }
+  }
+}

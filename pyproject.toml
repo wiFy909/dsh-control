@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dsh-platform-control"
+version = "0.3.0"
+description = "DSH Control terminal service console"
+requires-python = ">=3.10"
+dependencies = ["textual==6.12.0", "textual-image==0.8.4", "Pillow==11.3.0", "keyring==25.7.0", "PyYAML==6.0.3", "psutil==7.2.2", "tzdata>=2025.2", "zstandard==0.25.0", "setuptools==84.0.0"]
+
+[project.scripts]
+dsh-control = "dsh_control_app.app:main"
+
+[tool.setuptools.packages.find]
+include = ["dsh_control_app*", "core*"]
+
+[tool.setuptools.package-data]
+dsh_control_app = ["assets/brand/*", "assets/*.json", "assets/*.svg", "assets/*.png", "*.tcss"]

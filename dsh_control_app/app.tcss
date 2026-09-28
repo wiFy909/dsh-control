@@ -1,0 +1,170 @@
+Screen { background: #070e1b; color: #cedcf2; scrollbar-size: 1 1; scrollbar-color: #567cac; scrollbar-background: #172b46; align-horizontal: center; }
+#dashboard-shell { width: 100%; max-width: 160; height: 100%; }
+#header { height: 5; padding: 1 2; background: #0c182b; border-bottom: solid #253d5c; }
+#workspace { height: 1fr; padding: 1; width: 100%; max-width: 160; align-horizontal: center; }
+#nav { width: 16%; min-width: 22; max-width: 34; margin-right: 1; background: #0b1525; border: solid #253d5c; }
+#whale { height: 13; }
+#pixel-image, #pixel-image > * { width: 100%; height: 100%; }
+.nav-title { color: #7892b4; padding: 0 1; height: 1; }
+#nav Button { content-align: center middle; text-align: center; padding: 0; width: 100%; min-width: 0; height: 3; border: none; background: #111e32; margin-bottom: 0; }
+#nav Button:hover { background: #213d64; }
+#nav Button:focus { background: #365f9d; color: #eef6ff; }
+#nav-note { margin-top: 1; padding: 0 1; color: #7692b6; height: auto; }
+#middle { width: 5fr; min-width: 30; margin-right: 1; }
+#chain { height: 1fr; border: solid #2d4566; background: #0e1b2e; }
+.panel-title { height: 3; padding: 1 2 0 2; color: #97bcec; text-style: bold; }
+#chain-meta { height: 2; padding: 0 2; color: #819abd; }
+#timeline { padding: 0 2; height: 17; }
+#process { height: 3; padding: 0 2; color: #7596bf; }
+#result-panel { height: 8; margin-top: 1; border: solid #2d4566; background: #0b1729; }
+#result { padding: 0 2; height: auto; }
+#right { width: 7fr; min-width: 38; border: solid #2d4566; background: #0b1729; }
+#config { height: 13; margin: 0 1; background: #0b1729; }
+DataTable > .datatable--header { background: #172b46; color: #a7c5ed; }
+#tiles { height: 4; padding: 0 1; }
+#tiles Button { width: 1fr; min-width: 6; height: 3; margin-right: 1; border: none; background: #203c62; color: #bad5fb; }
+#tiles Button.selected { background: #456fb0; color: #f1f7ff; }
+#filter { height: 3; margin: 0 1; border: tall #29496f; background: #0e1b2e; }
+#details { height: 1fr; padding: 0 2; scrollbar-size-vertical: 1; scrollbar-color: #567cac; scrollbar-background: #172b46; }
+#detail-content { height: auto; }
+#billing { height: 4; background: #102039; border-top: solid #29496f; padding: 0 1; }
+#billing-cards { height: 3; }
+#balance { width: 18; min-width: 10; height: 3; border: none; background: #193451; margin-right: 1; }
+#billing-phase { width: 22; }
+#billing-today, #billing-week, #usage { width: 1fr; height: 3; }
+#billing-phase, #billing-today, #billing-week, #usage { padding: 0 1; border-left: solid #29496f; }
+ModalScreen { align: center middle; background: #030810b3; }
+#account-box { width: 76; height: auto; max-height: 90%; border: solid #507db4; padding: 1 2; background: #101f35; }
+#account-box Label { height: auto; margin-bottom: 0; }
+#account-box Input { margin-bottom: 1; }
+#account-actions { height: 3; }
+#account-actions Button { min-width: 8; width: 1fr; border: none; margin-right: 1; }
+#error { color: #e7aa9c; height: auto; }
+Screen.compact #nav { width: 22; }
+Screen.compact #whale { height: 9; }
+Screen.compact #middle { min-width: 25; width: 2fr; }
+Screen.compact #right { min-width: 28; width: 3fr; }
+Screen.compact #config { height: 10; }
+Screen.compact #timeline { padding: 0 1; }
+Screen.compact #header { padding: 1; }
+Screen.short #nav-note { display: none; }
+Screen.short .panel-title { height: 1; }
+Screen.short #chain-meta { height: 1; }
+Screen.short #timeline { height: 11; }
+Screen.short #process { display: none; }
+Screen.short #result-panel { height: 5; }
+
+#size-hint { display: none; height: 1fr; padding: 2; color: #a7c5ed; }
+
+/* Fit the ordinary 120 x 30 Windows Terminal viewport without resizing its
+   host buffer. Borders and controls retain whole-cell geometry at every size. */
+Screen.short #header { height: 3; padding: 0 1; }
+Screen.short #workspace { padding: 0 1; }
+Screen.short #billing { height: 4; }
+Screen.short #usage { height: 3; }
+Screen.short #balance { width: 18; }
+Screen.short #billing-phase { width: 22; }
+Screen.short #nav { width: 22; }
+Screen.short #whale { height: 1fr; min-height: 3; max-height: 13; }
+Screen.short .nav-title { display: none; }
+Screen.short #nav Button { height: 3; margin-bottom: 0; }
+Screen.short #middle { min-width: 27; }
+Screen.short #right { min-width: 30; }
+Screen.short #config { height: 6; }
+Screen.short #tiles { height: 3; }
+Screen.short .panel-title { padding: 0 1; }
+Screen.short #chain-meta { padding: 0 1; }
+Screen.short #timeline { padding: 0 1; }
+Screen.short #result { padding: 0 1; }
+
+/* Keep the service actions visible at 80x24; V switches the content page. */
+Screen.narrow #workspace { padding: 0; }
+Screen.narrow #nav { width: 21; min-width: 21; margin-right: 0; }
+Screen.narrow #nav-note, Screen.narrow .nav-title { display: none; }
+Screen.narrow #nav Button { height: 3; margin: 0; }
+Screen.narrow #middle, Screen.narrow #right { width: 1fr; min-width: 0; margin: 0; }
+Screen.narrow #config { height: 6; }
+Screen.narrow #tiles Button { min-width: 0; }
+Screen.narrow #timeline { height: auto; }
+Screen.narrow #chain { height: 1fr; }
+Screen.narrow #result-panel { height: 5; }
+Screen.narrow #balance { width: 12; }
+Screen.narrow #usage { display: none; }
+Screen.narrow #billing-today { width: 1fr; }
+
+/* Character artwork follows the viewport; optional image protocols use a canvas. */
+OnboardingScreen { background: #071121; color: #bbd0ed; }
+#onboarding-root { width: 100%; height: 1fr; align-horizontal: center; }
+#welcome-view, #platform-view, #install-view { width: 100%; height: 1fr; align: center middle; }
+#welcome-stage { width: auto; height: auto; align-horizontal: center; }
+#welcome-art { margin: 0; }
+#welcome-image, #welcome-image > * { width: 100%; height: 100%; }
+#welcome-character { width: 100%; height: 100%; }
+#platform-view { max-width: 80; padding: 2; }
+#platform-title { width: 100%; text-align: center; text-style: bold; color: #c5e0ff; margin: 2 0; }
+#platform-warning { color: #e7aa9c; height: auto; text-align: center; }
+.platform-row { width: 100%; height: 7; align-horizontal: center; }
+.platform-card { width: 26; height: 5; margin: 0 1; border: solid #385677; background: #101f35; color: #b6d0f2; outline: none; }
+.platform-card:hover, .platform-card:focus { border: solid #709ac8; background: #1b3658; color: #e0efff; outline: none; }
+#install-view { max-width: 96; padding: 1 2; }
+#install-title { text-align: center; text-style: bold; color: #c6e1ff; height: 2; }
+#install-info { height: auto; margin: 1 0; }
+#install-host-commands, #install-commands { width: 100%; height: auto; background: #0d1f37; border: solid #2c527d; padding: 1 2; margin-bottom: 1; }
+.install-actions { width: 100%; height: 4; }
+.install-actions Button { min-width: 12; margin-right: 1; }
+#check-status { height: auto; color: #9cbbe0; margin: 1 0; }
+#candidate-select { width: 100%; }
+#bind-selected { width: 26; }
+#onboarding-exit { dock: bottom; align-horizontal: right; width: 10; height: 3; offset-x: 100%; margin-left: -11; }
+OnboardingScreen #platform-view, OnboardingScreen #install-view { display: none; }
+
+/* Keep all interactive states in the approved muted blue family. */
+Button { background: #15263d; color: #adc4e3; border: none; }
+Button.-primary { background: #263f60; color: #d1e0f4; }
+Button:hover { background: #233a56; }
+Button:focus { background: #304d71; color: #e0edff; text-style: none; }
+Button:focus > .button--label { text-style: none; }
+DataTable > .datatable--cursor { background: #233e60; color: #dae7f8; text-style: none; }
+DataTable > .datatable--hover { background: #1b304c; color: #c7daef; }
+/* Fit the platform and install flow in the normal 120 x 30 window. */
+#platform-view { padding: 1 2; }
+#platform-title { margin: 1 0; }
+.platform-row { height: 5; }
+.platform-card { height: 3; }
+#install-view { align-vertical: top; }
+DataTable > .datatable--odd-row { background: #0c192b; }
+DataTable > .datatable--even-row { background: #0f1d31; }
+
+/* Small canonical brand keeps the 80x24 action rail usable. */
+Screen.narrow #whale { display: block; height: 1fr; min-height: 3; max-height: 7; }
+
+#onboarding-back { dock: bottom; width: 12; height: 3; margin-left: 1; }
+Screen.low #timeline { height: 6; }
+Screen.low #nav Button { height: 1; margin-bottom: 1; }
+Screen.low #nav #exit { margin-bottom: 0; }
+#onboarding-root { padding: 0; }
+#onboarding-footer { dock: bottom; width: 100%; height: 3; padding: 0 1; }
+#onboarding-back, #onboarding-exit { dock: none; offset: 0 0; margin: 0; }
+#onboarding-spacer { width: 1fr; }
+Screen.low #whale { height: 4; min-height: 4; max-height: 4; }
+.onboarding-note { color: #7490b2; text-align: center; width: 100%; height: auto; }
+
+UpdateScreen { align: center middle; background: #071121; }
+#update-root { width: 100%; max-width: 100; height: 100%; padding: 1 2; }
+#update-title { height: 2; text-align: center; text-style: bold; color: #c5e0ff; }
+#update-status { height: auto; max-height: 5; margin-bottom: 1; }
+#update-platforms { height: 1fr; align: center middle; }
+#update-instructions { height: 1fr; }
+#update-info { height: auto; margin-bottom: 1; }
+#update-commands { height: auto; padding: 1; background: #0d1f37; border: solid #2c527d; }
+#update-actions { height: 3; margin-top: 1; }
+#update-actions Button { width: 1fr; min-width: 10; margin-right: 1; content-align: center middle; }
+
+/* Ordinary Mac windows: reserve real drawing space above six compact actions. */
+Screen.dense #nav Button { height: 1; margin-bottom: 1; text-style: none; }
+Screen.dense #nav #exit { margin-bottom: 0; }
+Screen.dense #whale { height: 1fr; min-height: 4; max-height: 10; }
+Screen.low #whale { height: 4; min-height: 4; max-height: 4; }
+Screen.compact #balance { width: 16; text-style: none; }
+Screen.compact #billing-phase { width: 20; }
+Screen.narrow #balance { width: 12; }

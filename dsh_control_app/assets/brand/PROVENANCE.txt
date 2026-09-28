@@ -1,0 +1,21 @@
+# Provenance
+
+Retrieved for DSH Control terminal-rendering work on 2026-09-27.
+
+## Canonical source selected
+
+- Repository: `deepseek-ai/deepseek-harness`
+- Upstream path: `apps/web/public/favicon.svg`
+- Upstream branch: `master`
+- Git blob SHA: `754615a37acaf1d24973b4e757ccdb16b9b8f003`
+- Purpose: official pure whale mark, transparent background; this is the recommended canonical geometry for Braille/block/ASCII generation.
+
+The upstream Desktop README separately states that the original Desktop artwork is stored in `apps/desktop/resources/icon.png` and `icon.svg`, with Windows/macOS platform adaptations. Those assets include icon background, gradients and shadows and are therefore less suitable than the pure favicon path as the geometry source for a terminal renderer.
+
+## Derived files in this pack
+
+`10_RENDERED/*` and `20_TERMINAL_INPUT/*` are locally rendered/derived from the official `favicon.svg`; they are not separate upstream files.
+
+## License / brand note
+
+The upstream repository carries the MIT License (included as `LICENSE-upstream.txt`). Trademark/brand rights are conceptually separate from source-code copyright; when redistributing a community project, avoid wording or presentation that implies official DeepSeek endorsement unless authorized.

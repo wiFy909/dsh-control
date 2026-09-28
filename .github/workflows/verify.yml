@@ -1,0 +1,28 @@
+name: Verify public distribution
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: python -m pip install --require-hashes -r requirements.lock
+      - run: python -c "from pathlib import Path; Path('design').mkdir(exist_ok=True)"
+      - run: python -m unittest discover -s tests -v
+        env:
+          TERM: xterm-256color
+          TERM_PROGRAM: Apple_Terminal
+      - run: python scripts/build-release.py
+      - name: Install distribution outside checkout
+        run: python scripts/install-control.py --archive dist/dsh-control.zip --app-dir "${{ runner.temp }}/dsh-control/app" --bin-dir "${{ runner.temp }}/dsh-control/bin" --no-path

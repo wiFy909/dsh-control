@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "verified_at": "2026-09-24",
+  "package": "@deepseek-ai/dsh@0.1.5-rc.3",
+  "node_requirement": "Node.js 24+",
+  "sources": [
+    "https://github.com/deepseek-ai/deepseek-harness#run",
+    "https://www.npmjs.com/package/@deepseek-ai/dsh",
+    "https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/settings/settings-file/README.md"
+  ],
+  "platforms": {
+    "mac": {
+      "label": "Mac", "shell": "macOS Terminal", "prerequisite": "先安装 Node.js 24 或更新版本，并确认 node 和 npm 可用。",
+      "commands": ["node --version", "npm --version", "mkdir -p \"$HOME/.local/share/dsh-control/dsh-home\"", "npm install --prefix \"$HOME/.local/share/dsh-control/dsh-runtime\" @deepseek-ai/dsh@0.1.5-rc.3"],
+      "verify": "node --version；安装后由“安装完毕”核实持久包、入口、HOME 和端口。"
+    },
+    "linux": {
+      "label": "Linux", "shell": "Ubuntu Terminal", "prerequisite": "首个支持目标为 Ubuntu；先安装 Node.js 24 或更新版本与 npm。",
+      "commands": ["node --version", "npm --version", "mkdir -p \"$HOME/.local/share/dsh-control/dsh-home\"", "npm install --prefix \"$HOME/.local/share/dsh-control/dsh-runtime\" @deepseek-ai/dsh@0.1.5-rc.3"],
+      "verify": "node --version；安装后由“安装完毕”核实持久包、入口、HOME 和端口。"
+    },
+    "windows": {
+      "label": "Windows", "shell": "Windows PowerShell", "prerequisite": "先安装 Windows 版 Node.js 24 或更新版本，再打开新的 PowerShell。",
+      "commands": ["node --version", "npm --version", "New-Item -ItemType Directory -Force -Path \"$env:LOCALAPPDATA\\dsh-control\\dsh-home\"", "npm install --prefix \"$env:LOCALAPPDATA\\dsh-control\\dsh-runtime\" @deepseek-ai/dsh@0.1.5-rc.3"],
+      "verify": "node --version；安装后由“安装完毕”核实持久包、入口、HOME 和端口。"
+    },
+    "wsl": {
+      "label": "Windows / WSL", "shell": "Windows PowerShell，随后 Ubuntu Terminal", "prerequisite": "先在 Windows 启用 WSL 与 Ubuntu；在 Ubuntu 内安装 Node.js 24 或更新版本与 npm。",
+      "host_commands": ["wsl --install -d Ubuntu", "wsl --list --verbose"],
+      "commands": ["node --version", "npm --version", "mkdir -p \"$HOME/.local/share/dsh-control/dsh-home\"", "npm install --prefix \"$HOME/.local/share/dsh-control/dsh-runtime\" @deepseek-ai/dsh@0.1.5-rc.3"],
+      "verify": "在 Ubuntu 终端确认 node --version；回到此页选择发行版后执行检查。"
+    }
+  }
+}

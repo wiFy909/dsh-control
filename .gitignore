@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.release-governor/
+.documentation-lite/
+.DS_Store
+*.log
+*.local.json
+.env
+.env.*
+/design/
