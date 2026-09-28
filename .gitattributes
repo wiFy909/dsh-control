@@ -5,4 +5,4 @@
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 *.png binary
-tests/golden/** whitespace=-blank-at-eol
+tests/golden/** whitespace=-blank-at-eol,-blank-at-eof
