@@ -31,7 +31,7 @@ import time
 from urllib.parse import urlsplit, urljoin
 import uuid
 
-VERSION = '0.3.3'
+VERSION = '0.3.4'
 SCHEMA = 1
 ENTRY = Path('node_modules/@deepseek-ai/dsh/lib/bin.js')
 MUTATIONS = {'adopt', 'adopt-package', 'start', 'stop', 'restart', 'watchdog', 'watchdog-enable', 'watchdog-disable'}
@@ -1100,7 +1100,7 @@ def serve(controller, instance_id):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='DSH Control 0.3.3')
+    parser = argparse.ArgumentParser(description='DSH Control 0.3.4')
     parser.add_argument('action', choices=sorted(ACTIONS | {'_serve', 'request'}))
     parser.add_argument('--state-dir')
     parser.add_argument('--instance')

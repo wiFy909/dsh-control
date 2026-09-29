@@ -83,7 +83,7 @@ irm https://raw.githubusercontent.com/wiFy909/dsh-control/main/bootstrap.ps1 | i
 curl -fsSL https://raw.githubusercontent.com/wiFy909/dsh-control/main/install.sh | sh
 ```
 
-**安装完成后，需要重新打开对应系统的终端**，在任意目录输入：
+安装完成后，<u>建议重新打开对应系统的终端</u>，在任意目录输入：
 
 ```text
 dsh-control
