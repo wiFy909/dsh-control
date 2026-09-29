@@ -171,6 +171,8 @@ def main():
     parser.add_argument('--app-dir',type=Path,default=defaults[0])
     parser.add_argument('--bin-dir',type=Path,default=defaults[1])
     parser.add_argument('--no-path',action='store_true')
+    parser.add_argument('--control-only',action='store_true',help='仅安装 Control，稍后用 dsh-control --setup 接入 DSH')
+    parser.add_argument('--dsh-home',help='已有 DSH 的自定义数据目录')
     args=parser.parse_args()
     if sys.version_info<(3,10):parser.error('需要 Python 3.10 或更新版本。')
     with tempfile.TemporaryDirectory(prefix='dsh-control-install-') as tmp:
@@ -189,9 +191,17 @@ def main():
         record=install(folder,args.app_dir,args.bin_dir,args.replace_dsh,not args.no_path)
     print('安装完成。重新打开终端，在任意目录输入 dsh-control'+(' 或 dsh' if args.replace_dsh else '')+'。')
     print('构建：'+record['build_id'])
+    if not args.control_only:
+        command=[record['python'],'-I',record['runner'],'--setup']
+        if args.dsh_home:command+=['--dsh-home',args.dsh_home]
+        result=subprocess.run(command)
+        if result.returncode:
+            print('Control 已安装；DSH 接入尚未完成。处理上方提示后运行 dsh-control --setup。',file=sys.stderr)
+            return result.returncode
+    return 0
 
 
 if __name__=='__main__':
-    try:main()
+    try:raise SystemExit(main())
     except (OSError,ValueError,KeyError,subprocess.SubprocessError,zipfile.BadZipFile) as exc:
         print('安装未完成：'+str(exc),file=sys.stderr);raise SystemExit(1)

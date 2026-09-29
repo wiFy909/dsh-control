@@ -37,8 +37,8 @@ ModalScreen { align: center middle; background: #030810b3; }
 #account-box { width: 76; height: auto; max-height: 90%; border: solid #507db4; padding: 1 2; background: #101f35; }
 #account-box Label { height: auto; margin-bottom: 0; }
 #account-box Input { margin-bottom: 1; }
-#account-actions { height: 3; }
-#account-actions Button { min-width: 8; width: 1fr; border: none; margin-right: 1; }
+#account-actions, #account-tools { height: 3; }
+#account-actions Button, #account-tools Button { min-width: 8; width: 1fr; border: none; margin-right: 1; }
 #error { color: #e7aa9c; height: auto; }
 Screen.compact #nav { width: 22; }
 Screen.compact #whale { height: 9; }

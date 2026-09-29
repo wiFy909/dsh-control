@@ -497,6 +497,14 @@ def package_install(prefix, home, node, port=3080):
         raise ControlError('runtime_unavailable', 'Node 版本无法核实。') from exc
     if node_major < 24:
         raise ControlError('runtime_incompatible', '当前 DSH 包需要 Node 24 或更新版本。')
+    if __package__:
+        from .dsh_credentials import reference
+    else:
+        from dsh_credentials import reference
+    try:
+        credential_env = [reference(home, official_only=False)]
+    except ValueError:
+        credential_env = []
     return {'schema_version': SCHEMA, 'instance_id': identity, 'mode': 'observed',
             'source': 'npm-local', 'root': str(root), 'home': str(home), 'node': str(node),
             'entry': str(entry), 'cwd': str(home), 'port': port, 'version': version,
@@ -504,7 +512,7 @@ def package_install(prefix, home, node, port=3080):
             'entry_sha256': sha(entry),
             'user_home': str(Path.home()), 'runtime_type': 'wsl' if os.environ.get('WSL_DISTRO_NAME') else sys.platform,
             'profile': 'web', 'manager': 'dsh-control', 'capabilities': ['status', 'start', 'stop', 'open', 'restart'],
-            'credential_env': []}
+            'credential_env': credential_env}
 
 
 def discover_paths():

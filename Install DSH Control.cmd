@@ -1,3 +1,3 @@
 @echo off
-py -3 "%~dp0scripts\install-control.py" --source "%~dp0"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install.ps1" %*
 pause

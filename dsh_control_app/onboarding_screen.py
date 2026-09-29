@@ -167,13 +167,13 @@ class OnboardingScreen(Screen):
         self.invalidate_pending();self.selected=kind;self.candidate_items=[]
         self.wsl_distros=[]
         data=RECIPES['platforms'][kind]
-        self.query_one('#install-title',Static).update(f"{data['label']} · 手动安装 DSH")
-        self.query_one('#install-info',Static).update(f"执行位置：{data['shell']}\n前置条件：{data['prerequisite']}\n安装的是 DeepSeek 官方 DSH 包；命令显式指定版本号，便于版本管理和更新识别。\n安装版本：{RECIPES['package']} · 核对日期 {RECIPES['verified_at']}\n官网单行命令 npx @deepseek-ai/dsh web 会下载并启动官方包；仍需先安装 Node.js，不会配置本控制台的固定安装与绑定。\n安装后确认：{data['verify']}\n失败时先核实 Node/npm 与网络，再重试同一命令；Control 不自动安装 DSH。")
+        self.query_one('#install-title',Static).update(f"{data['label']} · 自适应安装与接入")
+        self.query_one('#install-info',Static).update(f"执行位置：{data['shell']}\n前置条件：{data['prerequisite']}\n安装命令会读取已有 DSH_HOME 或 ~/.dsh，沿用其中的 Key、配置与会话；没有环境时安装官方包。\n已有 Control 绑定会直接复用；首次安装查询官方最新版本。\n如果原 DSH 仍在运行，请先用原入口停止，再执行接入命令。自定义目录可追加 --dsh-home 绝对路径。")
         host='\n'.join(data.get('host_commands',[]))
         self.query_one('#install-host-commands',Static).update(('Windows PowerShell：\n'+host) if host else '')
         self.query_one('#install-host-commands').display=bool(host)
-        self.query_one('#install-commands',Static).update(data['shell'].split('，')[-1]+'：\n'+'\n'.join(data['commands']))
-        self.query_one('#check-status',Static).update('可选择原有受管安装；检查会同时发现固定配方的持久包。')
+        self.query_one('#install-commands',Static).update(data['shell'].split('，')[-1]+'：\ndsh-control --setup')
+        self.query_one('#check-status',Static).update('执行完成后点击安装完毕；已有可用环境也可以直接检查。')
         self.phase='install';self.render_phase()
         self.query_one('#installation-done',Button).focus()
 
@@ -202,7 +202,7 @@ class OnboardingScreen(Screen):
             self.set_timer(20,lambda:self.check_timeout(generation))
         elif target=='copy-commands':
             recipe=RECIPES['platforms'][self.selected]
-            self.app.copy_to_clipboard('\n'.join(recipe['commands']))
+            self.app.copy_to_clipboard('dsh-control --setup')
             self.query_one('#check-status',Static).update('已请求复制；若终端不支持剪贴板，可选择上方纯命令文本复制。')
         elif target=='bind-selected':
             index=self.query_one('#candidate-select',Select).value

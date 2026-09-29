@@ -1,4 +1,4 @@
-"""Only the explicit user's account key; no plaintext fallback or DSH credential reads."""
+"""Official balance lookup with explicit keys or a read-only bound DSH credential."""
 from decimal import Decimal, InvalidOperation
 import http.client
 import json
@@ -11,13 +11,43 @@ class Account:
     USER = 'balance-api-key'
     def __init__(self):
         self._key = None
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.status = '未配置 API Key'
         self.balances = []
         self.saved = False
         self.stored_key_present = None
         self.generation = 0
         self.last_updated = None
+        self.dsh_source = None
+        self.auto_dsh = True
+
+    def use_dsh(self, config, explicit=False):
+        with self.lock:
+            if explicit:
+                self.auto_dsh = True
+            if not self.auto_dsh or (self._key and self.dsh_source is None and not explicit):
+                return
+            generation = self.generation
+        from core.dsh_credentials import read_key
+        try:
+            value = read_key(config)
+        except (ValueError,OSError) as exc:
+            with self.lock:
+                if generation != self.generation: return
+                if self.dsh_source is not None:
+                    self.clear_session()
+                    self.auto_dsh = True
+            if explicit:
+                raise ValueError(str(exc) if type(exc) is ValueError else 'DSH 凭据文件不可读') from None
+            return
+        source = config['home']
+        with self.lock:
+            if generation != self.generation: return
+            if value != self._key or source != self.dsh_source:
+                self.set_key(value)
+                self.auto_dsh = True
+                self.dsh_source = source
+                self.status = '已读取 DSH Key，等待余额查询'
 
     @staticmethod
     def secure_backend():
@@ -56,6 +86,7 @@ class Account:
     def storage_summary(self):
         with self.lock:
             current = ('当前会话：未使用 Key' if self._key is None else
+                       '当前会话：沿用 DSH Key（只读，不另存）' if self.dsh_source else
                        '当前会话：使用已保存 Key' if self.saved else
                        '当前会话：仅本次 Key（不会保存）')
             stored = ('系统密钥库：有已保存 Key，下次启动会恢复' if self.stored_key_present is True else
@@ -77,6 +108,8 @@ class Account:
         with self.lock:
             self.generation += 1
             self._key, self.saved, self.balances = value, save, []
+            self.dsh_source = None
+            self.auto_dsh = False
             if save:
                 self.stored_key_present = True
             self.last_updated = None
@@ -86,6 +119,8 @@ class Account:
         with self.lock:
             self.generation += 1
             self._key, self.saved, self.balances = None, False, []
+            self.dsh_source = None
+            self.auto_dsh = False
             self.last_updated = None
             self.status = '本次凭据已清除'
 
@@ -116,6 +151,8 @@ class Account:
         with self.lock:
             self.generation += 1
             self._key, self.saved, self.balances = None, False, []
+            self.dsh_source = None
+            self.auto_dsh = False
             self.stored_key_present = False
             self.last_updated = None
             self.status = '未配置 API Key'

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the public, checksum-verified source distribution."""
 from pathlib import Path
-import hashlib,json,re,shutil,zipfile
+import hashlib,io,json,re,shutil,tarfile,zipfile
 root=Path(__file__).resolve().parents[1]
 version=re.search(r'^version = "([^" ]+)"', (root/'pyproject.toml').read_text(),re.M)[1]
 assert re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+',version)
@@ -20,7 +20,29 @@ with zipfile.ZipFile(out/'dsh-control.zip','w',zipfile.ZIP_DEFLATED) as z:
         z.writestr(info,data);manifest['files'][n]={'size':len(data),'sha256':hashlib.sha256(data).hexdigest()}
     z.writestr('MANIFEST.json',json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
 for n in ('install.sh','install.ps1'):shutil.copyfile(root/n,out/n)
-(out/'SHA256SUMS').write_text(''.join(hashlib.sha256((out/n).read_bytes()).hexdigest()+'  '+n+'\n' for n in ('dsh-control.zip','install.sh','install.ps1')))
+artifacts=['dsh-control.zip','install.sh','install.ps1']
+for platform in ('macos','windows','linux'):
+    name='dsh-control-'+platform+'.zip'
+    # Shared Python payload supports both x64 and arm64; installers select the host runtime.
+    shutil.copyfile(out/'dsh-control.zip',out/name)
+    artifacts.append(name)
+package={'name':'dsh-control-installer','version':version,'private':True,
+         'description':'Install DSH Control from its GitHub Release',
+         'bin':{'dsh-control-install':'install.cjs'},'engines':{'node':'>=24'}}
+with tarfile.open(out/'dsh-control-installer.tgz','w:gz') as archive:
+    payload={'package.json':(json.dumps(package,indent=2)+'\n').encode(),
+             'install.cjs':(root/'scripts/npm-install.cjs').read_bytes(),
+             'install.sh':(root/'install.sh').read_bytes(),
+             'install.ps1':(root/'install.ps1').read_bytes(),
+             'LICENSE':(root/'LICENSE').read_bytes()}
+    for name,data in payload.items():
+        info=tarfile.TarInfo('package/'+name);info.size=len(data)
+        info.mode=0o755 if name.endswith(('.cjs','.sh')) else 0o644
+        archive.addfile(info,io.BytesIO(data))
+artifacts.append('dsh-control-installer.tgz')
+shutil.copyfile(root/'assets/RELEASE_NOTES.md',out/'RELEASE_NOTES.md')
+artifacts.append('RELEASE_NOTES.md')
+(out/'SHA256SUMS').write_text(''.join(hashlib.sha256((out/n).read_bytes()).hexdigest()+'  '+n+'\n' for n in artifacts))
 with zipfile.ZipFile(out/'dsh-control.zip') as z:
     assert z.testzip() is None
     for n,v in manifest['files'].items():assert hashlib.sha256(z.read(n)).hexdigest()==v['sha256']

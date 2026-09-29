@@ -33,7 +33,7 @@ class AccountDialog(ModalScreen):
             yield Label('DeepSeek 账户 · 余额查询')
             yield Label(self.app.account.status+'\n上次成功：'+(self.app.account.last_updated or '暂无'))
             yield Label(self.app.account.storage_summary(),id='account-storage')
-            yield Label('API Key 只用于 api.deepseek.com 余额接口。\n用量来自当前 DSH HOME 日志，金额为本地估算。\n仅本次不会覆盖或删除原有已保存 Key；删除已保存会同时清除本次凭据。')
+            yield Label('沿用 DSH Key 或输入官方 Key，查询 api.deepseek.com 余额。\n用量来自 DSH 日志，金额为本地估算；此处不会修改聊天 Key。\n清除与删除只影响 Control；原 DSH 凭据保持不变。')
             yield Input(placeholder='输入 API Key（隐藏）',password=True,id='api-key')
             yield Static('',id='error')
             with Horizontal(id='account-actions'):
@@ -41,7 +41,9 @@ class AccountDialog(ModalScreen):
                 yield Button('安全保存',id='save')
                 yield Button('清除本次',id='clear-session')
                 yield Button('删除已保存',id='clear-saved')
+            with Horizontal(id='account-tools'):
                 yield Button('刷新余额',id='refresh')
+                yield Button('沿用 DSH',id='use-dsh')
                 yield Button('关闭',id='close')
     def action_dismiss_dialog(self): self.dismiss(None)
     def on_button_pressed(self,event):
@@ -59,6 +61,9 @@ class AccountDialog(ModalScreen):
             if action in ('session','save'): self.app.account.set_key(value,action=='save')
             elif action=='clear-session': self.app.account.clear_session()
             elif action=='clear-saved': self.app.account.clear()
+            elif action=='use-dsh':
+                if not self.app.backend.config: raise ValueError('请先接入 DSH')
+                self.app.account.use_dsh(self.app.backend.config,explicit=True)
             self.app.account.refresh()
             self.app.call_from_thread(self.dismiss,None)
             self.app.post_message(Updated())
@@ -272,6 +277,7 @@ class ControlApp(App):
         if not self.account_guard.acquire(blocking=False): return
         try:
             if restore: self.account.restore()
+            if self.backend.config: self.account.use_dsh(self.backend.config)
             self.account.refresh()
             self.post_message(Updated())
         finally: self.account_guard.release()
@@ -564,6 +570,8 @@ def main(argv=None):
     parser.add_argument('--rows',type=int,help='render-doctor viewport rows')
     parser.add_argument('--build-info',action='store_true',help='显示实际加载的控制台构建与源码路径')
     parser.add_argument('--state-dir')
+    parser.add_argument('--setup',action='store_true',help='识别原 DSH 环境或安装官方包并绑定')
+    parser.add_argument('--dsh-home',help='接入自定义 DSH 数据目录，与 --setup 一起使用')
     parser.add_argument('--instance')
     parser.add_argument('--definition',help='首次绑定安装定义；不扫描或接管其他实例')
     parser.add_argument('--project',help='仅用于只读浏览该项目的技能')
@@ -575,6 +583,18 @@ def main(argv=None):
     parser.add_argument('--expected-wsl-distro',help=argparse.SUPPRESS)
     parser.add_argument('--expected-wsl-user',help=argparse.SUPPRESS)
     args=parser.parse_args(argv)
+    if args.setup:
+        from .setup_runtime import setup
+        from core.dsh_control import ControlError
+        import subprocess
+        try:
+            setup(args.state_dir,args.dsh_home)
+            return 0
+        except (ControlError,ValueError,OSError,subprocess.SubprocessError) as exc:
+            message = exc.message if isinstance(exc,ControlError) else str(exc) if type(exc) is ValueError else '安装或网络检查未完成，请核实 Node/npm 与网络后重试'
+            print('DSH 接入未完成：'+message,file=sys.stderr)
+            return 1
+    if args.dsh_home: parser.error('--dsh-home 需要与 --setup 一起使用')
     if args.build_info:
         import json
         from pathlib import Path

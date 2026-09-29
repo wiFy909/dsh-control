@@ -25,4 +25,4 @@ jobs:
           TERM_PROGRAM: Apple_Terminal
       - run: python scripts/build-release.py
       - name: Install distribution outside checkout
-        run: python scripts/install-control.py --archive dist/dsh-control.zip --app-dir "${{ runner.temp }}/dsh-control/app" --bin-dir "${{ runner.temp }}/dsh-control/bin" --no-path
+        run: python scripts/install-control.py --archive dist/dsh-control.zip --app-dir "${{ runner.temp }}/dsh-control/app" --bin-dir "${{ runner.temp }}/dsh-control/bin" --no-path --control-only
