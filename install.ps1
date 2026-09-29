@@ -1,12 +1,23 @@
 ﻿param([Parameter(ValueFromRemainingArguments=$true)][string[]]$InstallerArgs)
 $ErrorActionPreference = 'Stop'
-$releaseUrl = 'https://github.com/wiFy909/dsh-control/releases/download/v0.3.0'
+$releaseApi = 'https://api.github.com/repos/wiFy909/dsh-control/releases/tags/v0.3.1'
+$PSNativeCommandUseErrorActionPreference = $false
 $python = $null
-foreach ($candidate in @('python', 'python3', 'py')) {
-    $command = Get-Command $candidate -ErrorAction SilentlyContinue
-    if ($command) {
-        & $command.Source -c 'import sys; raise SystemExit(sys.version_info < (3,10))' 2>$null
-        if ($LASTEXITCODE -eq 0) { $python = $command.Source; break }
+$candidates = @()
+$py = Get-Command py.exe -ErrorAction SilentlyContinue
+if ($py) {
+    $found = (& $py.Source -3.12 -c 'import sys; print(sys.executable)' 2>$null | Out-String).Trim()
+    if ($LASTEXITCODE -eq 0 -and $found) { $candidates += $found }
+}
+$candidates += (Join-Path $env:LOCALAPPDATA 'Programs/Python/Python312/python.exe')
+foreach ($name in @('python', 'python3')) {
+    $command = Get-Command $name -ErrorAction SilentlyContinue
+    if ($command -and $command.Source -notmatch 'WindowsApps') { $candidates += $command.Source }
+}
+foreach ($candidate in ($candidates | Select-Object -Unique)) {
+    if (Test-Path -LiteralPath $candidate) {
+        & $candidate -c 'import sys; raise SystemExit(not ((3,10) <= sys.version_info[:2] < (3,14)))' 2>$null
+        if ($LASTEXITCODE -eq 0) { $python = $candidate; break }
     }
 }
 $tempDir = Join-Path ([IO.Path]::GetTempPath()) ('dsh-control-' + [guid]::NewGuid())
@@ -44,12 +55,14 @@ try {
         if ($LASTEXITCODE -ne 0) { throw '安装或 DSH 接入未完成，请处理上方提示后重试。' }
         return
     }
-    $archive = Join-Path $tempDir 'dsh-control.zip'
-    Invoke-WebRequest "$releaseUrl/dsh-control.zip" -OutFile $archive
-    $lines = (Invoke-WebRequest "$releaseUrl/SHA256SUMS").Content -split "`n"
-    $matches = @($lines | Where-Object { $_ -match '^[a-f0-9]{64}  dsh-control[.]zip\s*$' })
-    if ($matches.Count -ne 1) { throw '缺少发行包校验值。' }
-    $expected = ($matches[0] -split '\s+')[0]
+    $release = Invoke-RestMethod $releaseApi -Headers @{'User-Agent'='DSH-Control-Installer'}
+    $assets = @($release.assets | Where-Object { $_.name -eq 'dsh-control-windows.zip' -and $_.state -eq 'uploaded' })
+    if ($assets.Count -ne 1 -or $assets[0].digest -notmatch '^sha256:([a-f0-9]{64})$') { throw '发行包缺少有效的 SHA-256 校验记录。' }
+    $expected = $Matches[1]
+    $url = [string]$assets[0].browser_download_url
+    if ($url -ne 'https://github.com/wiFy909/dsh-control/releases/download/v0.3.1/dsh-control-windows.zip') { throw '发行包下载地址不匹配。' }
+    $archive = Join-Path $tempDir 'dsh-control-windows.zip'
+    Invoke-WebRequest $url -OutFile $archive -UseBasicParsing
     if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLower() -ne $expected) { throw '下载校验失败。' }
     Expand-Archive $archive -DestinationPath (Join-Path $tempDir 'source')
     & $python -X utf8 -I (Join-Path $tempDir 'source/scripts/install-control.py') --archive $archive --sha256 $expected @InstallerArgs

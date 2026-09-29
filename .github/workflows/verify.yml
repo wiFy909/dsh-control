@@ -28,5 +28,13 @@ jobs:
           TERM: xterm-256color
           TERM_PROGRAM: Apple_Terminal
       - run: python scripts/build-release.py
-      - name: Install distribution outside checkout
-        run: python scripts/install-control.py --archive dist/dsh-control.zip --app-dir "${{ runner.temp }}/dsh-control/app" --bin-dir "${{ runner.temp }}/dsh-control/bin" --no-path --control-only
+      - name: Extract complete distribution outside checkout
+        run: python -m zipfile -e dist/dsh-control-windows.zip "${{ runner.temp }}/dsh extracted package"
+      - name: Install through Windows user entry
+        if: runner.os == 'Windows'
+        env:
+          DSH_CONTROL_NO_PAUSE: "1"
+        run: '& "${{ runner.temp }}/dsh extracted package/Install DSH Control.cmd" --app-dir "${{ runner.temp }}/dsh-control/app" --bin-dir "${{ runner.temp }}/dsh-control/bin" --no-path --control-only'
+      - name: Install through POSIX user entry
+        if: runner.os != 'Windows'
+        run: sh "${{ runner.temp }}/dsh extracted package/install.sh" --app-dir "${{ runner.temp }}/dsh-control/app" --bin-dir "${{ runner.temp }}/dsh-control/bin" --no-path --control-only

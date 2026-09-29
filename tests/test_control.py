@@ -561,7 +561,7 @@ class Protocol(unittest.TestCase):
         self.assertNotIn('OPENAI_API_KEY',windows)
 
     def test_import_has_no_deployment_requirement(self):
-        self.assertEqual(c.VERSION, '0.3.0')
+        self.assertEqual(c.VERSION, '0.3.1')
 
     def test_startup_handoff_restricts_host_and_port(self):
         self.assertIsNotNone(c.startup_url('dsh web: http://127.0.0.1:3456/?token=x', 3456))

@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -16,6 +17,31 @@ installer=importlib.util.module_from_spec(spec);spec.loader.exec_module(installe
 
 
 class UserInstallTests(unittest.TestCase):
+    @unittest.skipUnless(os.name=='nt', 'Runs the actual Windows batch entry')
+    def test_archive_preview_explains_complete_extraction(self):
+        with tempfile.TemporaryDirectory(prefix='WinRAR preview ') as tmp:
+            folder=Path(tmp)
+            entry=folder/'Install DSH Control.cmd'
+            shutil.copyfile(Path(__file__).resolve().parents[1]/entry.name,entry)
+            result=subprocess.run(['cmd.exe','/c',str(entry)],capture_output=True,text=True,
+                                  env={**os.environ,'DSH_CONTROL_NO_PAUSE':'1'},timeout=15)
+            self.assertEqual(result.returncode,2,result.stdout+result.stderr)
+            self.assertIn('extract ALL files',result.stdout)
+            self.assertNotIn('-File',result.stderr)
+
+    @unittest.skipUnless(os.name=='nt', 'Runs the actual Windows batch entry')
+    def test_windows_entry_preserves_installer_error(self):
+        with tempfile.TemporaryDirectory(prefix='complete package ') as tmp:
+            folder=Path(tmp)
+            entry=folder/'Install DSH Control.cmd'
+            shutil.copyfile(Path(__file__).resolve().parents[1]/entry.name,entry)
+            (folder/'MANIFEST.json').write_text('{}')
+            (folder/'scripts').mkdir();(folder/'scripts/install-control.py').touch()
+            (folder/'install.ps1').write_text('exit 7')
+            result=subprocess.run(['cmd.exe','/c',str(entry)],capture_output=True,text=True,
+                                  env={**os.environ,'DSH_CONTROL_NO_PAUSE':'1'},timeout=15)
+            self.assertEqual(result.returncode,7,result.stdout+result.stderr)
+
     def release(self,root):
         source=root/'download';source.mkdir()
         files={'requirements.lock':b'fixture','core/dsh_control.py':b'',
@@ -29,21 +55,22 @@ class UserInstallTests(unittest.TestCase):
         (source/'MANIFEST.json').write_text(json.dumps(manifest))
         return source
 
-    @unittest.skipIf(os.name=='nt','POSIX command shim; Windows wrapper generated separately')
     def test_global_commands_are_isolated_from_download_cwd_and_pythonpath(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);source=self.release(root);app=root/'user app';bin_dir=root/'user bin'
-            bin_dir.mkdir();(bin_dir/'dsh').write_text('old launcher')
+            suffix='.cmd' if os.name=='nt' else ''
+            bin_dir.mkdir();(bin_dir/('dsh'+suffix)).write_text('old launcher')
             with patch.object(installer,'provision',return_value=Path(sys.executable)):
                 result=installer.install(source,app,bin_dir,replace_dsh=True,update_path=False)
             source.rename(root/'download-moved-away')
             poison=root/'dsh_control_app';poison.mkdir();(poison/'__init__.py').write_text('raise RuntimeError("wrong cwd")')
             env={**os.environ,'PYTHONPATH':str(root)}
-            for args in ([str(bin_dir/'dsh-control'),'--build-info'],[str(bin_dir/'dsh'),'--build-info'],[str(bin_dir/'dsh'),'control','--build-info']):
+            for args in ([str(bin_dir/('dsh-control'+suffix)),'--build-info'],[str(bin_dir/('dsh'+suffix)),'--build-info'],[str(bin_dir/('dsh'+suffix)),'control','--build-info']):
+                if os.name=='nt':args=['cmd.exe','/d','/c',*args]
                 info=json.loads(subprocess.check_output(args,cwd=root,env=env,text=True))
                 self.assertTrue(Path(info['loaded_module']).is_relative_to(Path(result['release'])))
-            self.assertEqual((app/'previous-commands/dsh').read_text(),'old launcher')
-            self.assertNotIn(str(source),(bin_dir/'dsh-control').read_text())
+            self.assertEqual((app/('previous-commands/dsh'+suffix)).read_text(),'old launcher')
+            self.assertNotIn(str(source),(bin_dir/('dsh-control'+suffix)).read_text())
 
     def test_modified_package_and_failed_dependencies_preserve_current_install(self):
         with tempfile.TemporaryDirectory() as tmp:

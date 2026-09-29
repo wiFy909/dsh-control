@@ -1,12 +1,12 @@
 #!/bin/sh
 # Install once, then run dsh-control from any directory.
 set -eu
-release_url='https://github.com/wiFy909/dsh-control/releases/download/v0.3.0'
+release_api='https://api.github.com/repos/wiFy909/dsh-control/releases/tags/v0.3.1'
 task_tmp=$(mktemp -d "${TMPDIR:-/tmp}/dsh-control-install.XXXXXX")
 trap 'rm -rf "$task_tmp"' EXIT HUP INT TERM
 python_cmd=''
 for candidate in python3 python3.12 python; do
-    if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c 'import sys; raise SystemExit(sys.version_info < (3,10))' >/dev/null 2>&1; then
+    if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c 'import sys; raise SystemExit(not ((3,10) <= sys.version_info[:2] < (3,14)))' >/dev/null 2>&1; then
         python_cmd=$(command -v "$candidate"); break
     fi
 done
@@ -24,22 +24,28 @@ if [ -z "$python_cmd" ]; then
     "$uv_cmd" python install 3.12
     python_cmd=$("$uv_cmd" python find --managed-python 3.12)
 fi
-source_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+source_dir=''
+if [ -f "$0" ]; then source_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd); fi
 if [ -f "$source_dir/MANIFEST.json" ] && [ -f "$source_dir/scripts/install-control.py" ]; then
     "$python_cmd" -I "$source_dir/scripts/install-control.py" --source "$source_dir" "$@"
 else
-    curl --proto '=https' --tlsv1.2 -fsSL --retry 2 "$release_url/dsh-control.zip" -o "$task_tmp/release.zip"
-    curl --proto '=https' --tlsv1.2 -fsSL --retry 2 "$release_url/SHA256SUMS" -o "$task_tmp/SHA256SUMS"
+    curl --proto '=https' --tlsv1.2 -fsSL --retry 2 -H 'User-Agent: DSH-Control-Installer' "$release_api" -o "$task_tmp/release.json"
     "$python_cmd" -I - "$task_tmp" "$@" <<'BOOTSTRAP'
-import hashlib,pathlib,subprocess,sys,zipfile
+import hashlib,json,pathlib,platform,re,subprocess,sys,urllib.request,zipfile
 root=pathlib.Path(sys.argv[1]);archive=root/'release.zip'
-rows=[line.split() for line in (root/'SHA256SUMS').read_text().splitlines()]
-expected=[row[0] for row in rows if len(row)==2 and row[1]=='dsh-control.zip']
-if len(expected)!=1 or hashlib.sha256(archive.read_bytes()).hexdigest()!=expected[0]:raise SystemExit('下载校验失败，请重试。')
+name='dsh-control-'+('macos' if platform.system()=='Darwin' else 'linux')+'.zip'
+release=json.loads((root/'release.json').read_text())
+assets=[a for a in release['assets'] if a['name']==name and a['state']=='uploaded']
+if len(assets)!=1 or not re.fullmatch(r'sha256:[a-f0-9]{64}',assets[0].get('digest','')):raise SystemExit('发行包缺少有效的 SHA-256 校验记录。')
+asset=assets[0];expected=asset['digest'].split(':')[1]
+if asset['browser_download_url']!='https://github.com/wiFy909/dsh-control/releases/download/v0.3.1/'+name:raise SystemExit('发行包下载地址不匹配。')
+with urllib.request.urlopen(asset['browser_download_url'],timeout=60) as response:data=response.read(128*1024*1024+1)
+if len(data)>128*1024*1024 or hashlib.sha256(data).hexdigest()!=expected:raise SystemExit('下载校验失败，请重试。')
+archive.write_bytes(data)
 with zipfile.ZipFile(archive) as z:
     entry=z.getinfo('scripts/install-control.py')
     if entry.file_size>1024*1024:raise SystemExit('安装器体积异常。')
     script=root/'install-control.py';script.write_bytes(z.read(entry))
-subprocess.run([sys.executable,'-I',str(script),'--archive',str(archive),'--sha256',expected[0],*sys.argv[2:]],check=True)
+subprocess.run([sys.executable,'-I',str(script),'--archive',str(archive),'--sha256',expected,*sys.argv[2:]],check=True)
 BOOTSTRAP
 fi

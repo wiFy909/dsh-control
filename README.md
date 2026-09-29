@@ -8,11 +8,12 @@
 
 ## 亮点
 
-- **省心接管 DSH 日常使用和更新。** 启动、停止、重开网页、自检和更新集中在一个入口，鼠标点击和数字快捷键都能用。
-- **打开就知道下一步。** 鲸鱼 logo 欢迎画面后，按 Enter、Space 或单击鼠标继续；已接入的环境直接进入控制台，尚未接入则显示安装引导。
-- **自适应安装。** 已经使用 DSH 网页版，可以读取原有环境并绑定原 Key、配置与会话目录；尚未安装，则准备官方 DSH 包，首次使用在网页中输入 Key。后续通过控制台查询并跟进官方更新，省心使用。
+- **省心接管 DSH 日常使用和更新。** 启动、停止、重开网页、自检和更新集中在一个入口，鼠标点击和数字快捷键都能用。通过控制台查询并跟进官方更新，省心使用。
+- **自适应安装与持续追踪更新。** 已接入的环境直接进入控制台，尚未接入则显示安装引导：1. 已经使用 DSH 网页版，可以读取原有环境并绑定原 Key、配置与会话目录；2. 尚未安装，则准备官方 DSH 包，首次使用在网页中输入 Key。后续
 - **网页关了，后台仍然可控。** 解决网页与服务端分离、不便管理的问题：关闭聊天网页后，仍可在控制台检查后台服务、重开网页、停止服务，无须在终端反复输入繁琐命令。
 - **TUI 控制端，极速响应省资源。** 在终端完成日常控制，服务检查和数据读取在后台进行，聊天时也能随时回来查看状态。
+- **一列展示dsh启停进程。** 左侧显示dsh启动的各个进程，清晰展示进程状态和耗时，支持停止、自检、中途重新拉起，随心掌控。
+- **一屏概览dsh插件与技能配置。** 右侧显示dsh基础配置、插件、skills，插件、skills包含名称和概要，支持下拉或搜索，简洁明了。
 - **一行览尽用量与高低峰时段。** 用量、估算金额、账户余额和高低峰时段集中在底部信息栏，使用决策所需信息一眼可见。
 
 **您的最佳 DeepSeek Harness 启停与监控管家！**
@@ -25,27 +26,33 @@
 
 ## 快速开始
 
-提供两种安装方式：**一行命令安装**，或**下载 Release 安装包**。Windows、macOS、Linux 都需要先安装 [Node.js 24 或更新版本](https://nodejs.org/en/download)（含 npm），然后重新打开终端。WSL 请在其 Linux 环境内安装和运行。
+提供两种安装方式：**一行命令安装**，或**下载 Release 安装包**。Windows、macOS、Linux 都需要先安装 [Node.js 24 或更新版本](https://nodejs.org/en/download)（含 npm），然后重新打开终端。WSL 请在其 Linux 环境内安装和运行。Windows 安装 Node.js 时，无须勾选 **Automatically install the necessary tools / Tools for Native Modules**；该可选项会额外安装 Chocolatey、Python 和 Visual Studio Build Tools，并非安装 Control 的前置步骤。
 
 ### 方式一：一行命令安装
 
-在 PowerShell、Windows 命令提示符、macOS 或 Linux 终端中，使用同一条命令：
+**Windows：** 打开 PowerShell 7，执行：
 
-```sh
-npx --yes https://github.com/wiFy909/dsh-control/releases/latest/download/dsh-control-installer.tgz
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wiFy909/dsh-control/main/install.ps1)))
 ```
 
-安装器自动识别系统，下载并校验发行包，准备 Control 的独立运行环境；缺少 Python 时自动准备 Python 3.12，无须手动配置。随后识别原 DSH 环境，或安装官方最新 DSH 包并完成绑定。安装需要联网，不需要管理员权限。
+**macOS / Linux / WSL：** 在对应系统的终端执行：
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/wiFy909/dsh-control/main/install.sh | sh
+```
+
+安装器下载并校验对应平台的发行包，准备 Control 的独立运行环境，再识别原 DSH 环境或安装官方最新 DSH 包。自动选择兼容的 Python；仅有不兼容版本或未安装 Python 时，会准备 Python 3.12，无须手动配置。安装需要联网，不需要管理员权限。若 GitHub、Python 或 npm 下载受网络限制，需要可用的代理；下方 ZIP 同样是联网安装包，不能绕过后续依赖下载。
 
 
 ### 方式二：下载 Release 安装包
 
-打开 [GitHub Releases](https://github.com/wiFy909/dsh-control/releases/latest)，按系统下载并解压：
+打开 [GitHub Releases](https://github.com/wiFy909/dsh-control/releases/latest)，按系统下载，并将**整个 ZIP 完整解压到普通文件夹**。不要在 WinRAR 或压缩包预览窗口中直接双击安装文件：
 
 | 系统 | 安装包 | 安装操作 |
 |---|---|---|
 | macOS | `dsh-control-macos.zip` | 双击 `Install DSH Control.command`；也可在解压目录运行 `sh install.sh`。 |
-| Windows | `dsh-control-windows.zip` | 双击 `Install DSH Control.cmd`。 |
+| Windows | `dsh-control-windows.zip` | 完整解压后，在文件夹内双击 `Install DSH Control.cmd`。 |
 | Linux / WSL | `dsh-control-linux.zip` | 在解压目录运行 `sh install.sh`。 |
 
 三个包使用同一套控制台代码，安装器按系统准备运行环境；它们是联网安装包，安装后不必保留解压目录。
@@ -101,11 +108,25 @@ dsh-control
 
 **我想直接输入 `dsh` 打开 Control。** 默认保留已有 `dsh` 命令；如需替换用户命令目录中的入口，安装时明确追加选项：
 
+Windows PowerShell 7：
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wiFy909/dsh-control/main/install.ps1))) --replace-dsh
+```
+
+macOS / Linux / WSL：
+
 ```sh
-npx --yes https://github.com/wiFy909/dsh-control/releases/latest/download/dsh-control-installer.tgz --replace-dsh
+curl -fsSL https://raw.githubusercontent.com/wiFy909/dsh-control/main/install.sh | sh -s -- --replace-dsh
 ```
 
 旧启动脚本会备份到 Control 程序目录的 `previous-commands`，官方 DSH 不会被卸载。
+
+**旧 `npx` 命令提示 `EALLOWREMOTE`？** 这是 npm 拒绝远程 tarball，重新安装 Node.js 开发工具不能解决它。请改用上方 PowerShell / shell 安装命令，无须修改全局 npm 策略。
+
+**双击安装提示解压不完整或找不到 `install.ps1`？** 请关闭压缩包预览，完整解压全部文件后再运行文件夹中的安装入口。
+
+**WSL 卸载时资源管理器提示找不到路径？** 请在 Ubuntu 终端中按下方的卸载范围操作，避免从 Windows 资源管理器逐项删除 Linux 的符号链接；先停止服务并保留 DSH 数据目录。
 
 **点击启动后没打开网页？** 查看“结果与建议”，再运行自检。服务已经就绪、只是关掉了网页时，点击“3 重开网页”。自检不会发起模型对话，不能证明 Key 有效或余额充足。
 

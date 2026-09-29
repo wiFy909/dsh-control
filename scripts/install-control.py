@@ -140,7 +140,22 @@ def install(source,app,bin_dir,replace_dsh=False,update_path=True):
         info=json.loads(subprocess.check_output([str(python),'-X','utf8','-I',str(runner),'--build-info'],cwd=app,text=True))
         if not Path(info['loaded_module']).is_relative_to(release):raise ValueError('程序未从独立安装目录加载')
         launcher=app/'launch.py'
-        atomic(launcher,b'import json,os,sys\nfrom pathlib import Path\nr=json.loads((Path(__file__).parent/"current.json").read_text())\na=sys.argv[1:]\nif a and a[0].lower()=="control":a=a[1:]\nos.execv(r["python"],[r["python"],"-X","utf8","-I",r["runner"],*a])\n')
+        atomic(launcher, b'''import json,os,sys
+from pathlib import Path
+r=json.loads((Path(__file__).parent/"current.json").read_text())
+a=sys.argv[1:]
+if a and a[0].lower()=="control":a=a[1:]
+command=[r["python"],"-X","utf8","-I",r["runner"],*a]
+if os.name=="nt":
+    # CRT execv does not quote Windows arguments containing spaces.
+    # Keep the console attached and let the TUI handle Ctrl+C itself.
+    import subprocess
+    child=subprocess.Popen(command)
+    while True:
+        try:raise SystemExit(child.wait())
+        except KeyboardInterrupt:pass
+os.execv(r["python"],command)
+''')
         record={'purpose':'dsh-control-user-install-v1','python':str(python),'runner':str(runner),'release':str(release),'build_id':info['build_id']}
         current=app/'current.json'
         if current.exists():atomic(app/'previous.json',current.read_bytes())
@@ -177,7 +192,7 @@ def main():
     parser.add_argument('--control-only',action='store_true',help='仅安装 Control，稍后用 dsh-control --setup 接入 DSH')
     parser.add_argument('--dsh-home',help='已有 DSH 的自定义数据目录')
     args=parser.parse_args()
-    if sys.version_info<(3,10):parser.error('需要 Python 3.10 或更新版本。')
+    if not (3,10)<=sys.version_info[:2]<(3,14):parser.error('需要 Python 3.10–3.13；请使用 install.ps1 或 install.sh 自动准备兼容环境。')
     with tempfile.TemporaryDirectory(prefix='dsh-control-install-') as tmp:
         temp=Path(tmp);archive=args.archive
         if args.url:
