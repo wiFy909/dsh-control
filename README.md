@@ -33,7 +33,7 @@
 **Windows：** 打开 PowerShell 7，执行：
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wiFy909/dsh-control/main/install.ps1).TrimStart([char]0xFEFF)))
+irm https://raw.githubusercontent.com/wiFy909/dsh-control/main/bootstrap.ps1 | iex
 ```
 
 **macOS / Linux / WSL：** 在对应系统的终端执行：
@@ -100,7 +100,7 @@ dsh-control
 
 新用户在 DSH 网页保存 Key 后，Control 会在后续账户刷新时读取；也可点击左下角 **账户**（或按 **A**），选择 **沿用 DSH** 立即读取，或单独输入用于余额查询的 Key。手动输入支持“仅本次”和系统密钥库“安全保存”。读取 DSH Key 不会另存、改写或删除原凭据；手动配置的账户 Key 优先，点击“沿用 DSH”可切回原账户。
 
-用量来自本地记录，**Key 查询的是账户余额，不能据此取得完整历史账单**。金额是本地估算；记录或价格不完整时会提示，不能代替官方账单。没有记录时显示“—”。当前价格日历覆盖 2026-08-17 至 2026-10-24，超出范围仍显示 Token，金额标记为无法可靠估算。余额请求只发送至 `api.deepseek.com`，本地统计不会上传会话正文。
+用量来自本地会话记录，**账户余额由官方接口查询，估算金额不等于实际账单**。Control 按当前版本已核实的价格规则估算费用；记录不完整、价格规则过期或不适用时，会提示无法可靠估算，仍保留可读取的 Token 用量。没有记录时显示“—”。余额请求只发送至 `api.deepseek.com`，本地统计不会上传会话正文。
 
 ## 常见问题
 
@@ -108,10 +108,10 @@ dsh-control
 
 **我想直接输入 `dsh` 打开 Control。** 默认保留已有 `dsh` 命令；如需替换用户命令目录中的入口，安装时明确追加选项：
 
-Windows PowerShell 7：
+Windows：下载并完整解压 Windows 安装包，在解压目录打开 PowerShell，执行：
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wiFy909/dsh-control/main/install.ps1).TrimStart([char]0xFEFF))) --replace-dsh
+& ".\Install DSH Control.cmd" --replace-dsh
 ```
 
 macOS / Linux / WSL：

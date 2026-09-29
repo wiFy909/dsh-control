@@ -44,15 +44,20 @@ class UserInstallTests(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which('pwsh'), 'Requires PowerShell 7')
     def test_readme_powershell_command_accepts_utf8_bom_and_forwards_arguments(self):
-        readme=(Path(__file__).resolve().parents[1]/'README.md').read_text()
-        command=next(line for line in readme.splitlines() if line.startswith('& ([scriptblock]'))
+        root=Path(__file__).resolve().parents[1]
+        readme=(root/'README.md').read_text()
+        command=next(line for line in readme.splitlines() if line.startswith('irm '))
+        bootstrap=(root/'bootstrap.ps1').read_bytes().decode('ascii')
         # Invoke-RestMethod can preserve the UTF-8 signature in a response string.
         response="param([Parameter(ValueFromRemainingArguments=$true)][string[]]$InstallerArgs) 'BOM_OK:' + ($InstallerArgs -join ',')"
-        fixture="function Invoke-RestMethod { return ([char]0xFEFF + '"+response.replace("'", "''")+"') }\n"
-        result=subprocess.run([shutil.which('pwsh'),'-NoProfile','-Command',fixture+command+' --control-only --no-path'],
-                              capture_output=True,text=True,timeout=20)
-        self.assertEqual(result.returncode,0,result.stderr)
-        self.assertIn('BOM_OK:--control-only,--no-path',result.stdout)
+        fixture=("function Invoke-RestMethod { param($Uri) if ($Uri.EndsWith('/bootstrap.ps1')) { return '"
+                 +bootstrap.replace("'", "''")+"' }; return ([char]0xFEFF + '"+response.replace("'", "''")+"') }\n")
+        for invocation,expected in ((command,'BOM_OK:'),
+                ("& '"+str(root/'bootstrap.ps1').replace("'", "''")+"' --control-only --no-path",'BOM_OK:--control-only,--no-path')):
+            result=subprocess.run([shutil.which('pwsh'),'-NoProfile','-Command',fixture+invocation],
+                                  capture_output=True,text=True,timeout=20)
+            self.assertEqual(result.returncode,0,result.stderr)
+            self.assertIn(expected,result.stdout)
 
     def release(self,root):
         source=root/'download';source.mkdir()
