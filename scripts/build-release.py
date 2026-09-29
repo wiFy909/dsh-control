@@ -9,7 +9,7 @@ assert "VERSION = '"+version+"'" in (root/'core/dsh_control.py').read_text()
 names={p.relative_to(root).as_posix() for d in ('core','dsh_control_app','assets') for p in (root/d).rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.suffix!='.pyc'}
 names.update(('README.md','LICENSE','pyproject.toml','requirements.lock','install.sh','install.ps1','Install DSH Control.command','Install DSH Control.cmd','DSH Control.command','scripts/install-control.py','scripts/start-dsh-control.sh','scripts/start-dsh-control.cmd','scripts/prepare-wsl-tui.py','scripts/start-dsh-control-tui.ps1'))
 marker=root/'dsh_control_app/assets/build.json'
-build={'build_id':'v'+version,'version':version,'status':'macOS and WSL user-tested; Windows preview','patch_files':{}}
+build={'build_id':'v'+version,'version':version,'status':'Windows installation and WSL usage fix user-tested; macOS retest pending','patch_files':{}}
 build['patch_files']={n:hashlib.sha256((root/n).read_bytes()).hexdigest() for n in sorted(names) if n!='dsh_control_app/assets/build.json'}
 marker.write_text(json.dumps(build,ensure_ascii=False,indent=2)+'\n')
 out=root/'dist';out.mkdir(exist_ok=True);manifest={'build_id':'v'+version,'version':version,'files':{}}

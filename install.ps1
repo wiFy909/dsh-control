@@ -1,6 +1,6 @@
 ﻿param([Parameter(ValueFromRemainingArguments=$true)][string[]]$InstallerArgs)
 $ErrorActionPreference = 'Stop'
-$releaseApi = 'https://api.github.com/repos/wiFy909/dsh-control/releases/tags/v0.3.2'
+$releaseApi = 'https://api.github.com/repos/wiFy909/dsh-control/releases/tags/v0.3.3'
 $PSNativeCommandUseErrorActionPreference = $false
 $python = $null
 $candidates = @()
@@ -60,7 +60,7 @@ try {
     if ($assets.Count -ne 1 -or $assets[0].digest -notmatch '^sha256:([a-f0-9]{64})$') { throw '发行包缺少有效的 SHA-256 校验记录。' }
     $expected = $Matches[1]
     $url = [string]$assets[0].browser_download_url
-    if ($url -ne 'https://github.com/wiFy909/dsh-control/releases/download/v0.3.2/dsh-control-windows.zip') { throw '发行包下载地址不匹配。' }
+    if ($url -ne 'https://github.com/wiFy909/dsh-control/releases/download/v0.3.3/dsh-control-windows.zip') { throw '发行包下载地址不匹配。' }
     $archive = Join-Path $tempDir 'dsh-control-windows.zip'
     Invoke-WebRequest $url -OutFile $archive -UseBasicParsing
     if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLower() -ne $expected) { throw '下载校验失败。' }
