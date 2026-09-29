@@ -13,6 +13,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from unittest.mock import patch
@@ -43,6 +44,34 @@ const server = http.createServer((req,res)=>{
 server.listen(port, '127.0.0.1', ()=>console.log(`dsh web: http://127.0.0.1:${port}/?token=FIXTURE_SECRET`));
 process.on('SIGTERM', ()=>{fs.appendFileSync(home + '/stops','stop\n');server.close(()=>process.exit(0));});
 """
+
+
+class LockTests(unittest.TestCase):
+    def test_waits_for_transient_probe_but_never_steals_an_owned_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'lifecycle.lock'
+            entered = threading.Event()
+            release = threading.Event()
+            def probe():
+                with c.lock(path):
+                    entered.set()
+                    release.wait(3)
+            thread = threading.Thread(target=probe)
+            thread.start()
+            try:
+                self.assertTrue(entered.wait(2))
+                with self.assertRaises(c.ControlError) as blocked:
+                    with c.lock(path, timeout=.05):
+                        self.fail('stole the probe lock')
+                self.assertEqual(blocked.exception.code, 'busy')
+                timer = threading.Timer(.1, release.set)
+                timer.start()
+                with c.lock(path, timeout=2):
+                    self.assertTrue(release.is_set())
+                timer.join()
+            finally:
+                release.set()
+                thread.join()
 
 
 class ControlFrameTests(unittest.TestCase):

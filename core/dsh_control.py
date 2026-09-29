@@ -107,22 +107,27 @@ def atomic_json(path, value):
 
 
 @contextlib.contextmanager
-def lock(path):
+def lock(path, timeout=0):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     with path.open('a+b') as stream:
-        try:
-            if os.name == 'nt':
-                import msvcrt
-                if path.stat().st_size == 0:
-                    stream.write(b'0'); stream.flush()
-                stream.seek(0)
-                msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
-            else:
-                import fcntl
-                fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except (BlockingIOError, PermissionError, OSError) as exc:
-            raise ControlError('busy', '另一个运行管理器或操作持有锁；未改变服务。') from exc
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                if os.name == 'nt':
+                    import msvcrt
+                    if path.stat().st_size == 0:
+                        stream.write(b'0'); stream.flush()
+                    stream.seek(0)
+                    msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except (BlockingIOError, PermissionError, OSError) as exc:
+                if time.monotonic() >= deadline:
+                    raise ControlError('busy', '另一个运行管理器或操作持有锁；未改变服务。') from exc
+                time.sleep(min(.02, max(0, deadline-time.monotonic())))
         try:
             yield stream.fileno()
         finally:
@@ -943,7 +948,9 @@ def serve(controller, instance_id):
     config = controller.config(instance_id)
     folder = controller.folder(instance_id)
     journal = RuntimeJournal(folder)
-    with lock(Path(config['root']) / 'lifecycle.lock') as runtime_fd, lock(controller.domain_lock(config)) as domain_fd:
+    # Status probes briefly take these locks before the owner record exists.
+    # Give startup a bounded chance to outlive a probe without stealing a lock.
+    with lock(Path(config['root']) / 'lifecycle.lock', timeout=2) as runtime_fd, lock(controller.domain_lock(config), timeout=2) as domain_fd:
         controller.validate_runtime(config)
         if not port_free(config['port']):
             raise ControlError('port_occupied', '端口已占用。')

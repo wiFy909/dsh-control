@@ -40,7 +40,9 @@ class Launcher(unittest.TestCase):
                        '-Action', action, '-Distro', 'fixture', '-User', 'fixture', '-Json']
             if no_open:
                 command.append('-NoOpen')
-            result = subprocess.run(command, capture_output=True, text=True, timeout=10,
+            # Include PowerShell cold startup around the launcher's own 40 s
+            # operation budget; this is a behavior test, not a startup benchmark.
+            result = subprocess.run(command, capture_output=True, text=True, timeout=60,
                                     env={**os.environ, 'LOCALAPPDATA': str(folder)})
             calls = [json.loads(line) for line in (folder / 'calls.jsonl').read_text().splitlines()]
             return result.returncode, json.loads(result.stdout), calls
