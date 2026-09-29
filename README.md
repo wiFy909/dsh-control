@@ -9,7 +9,7 @@
 ## 亮点
 
 - **省心接管 DSH 日常使用和更新。** 启动、停止、重开网页、自检和更新集中在一个入口，鼠标点击和数字快捷键都能用。通过控制台查询并跟进官方更新，省心使用。
-- **自适应安装与持续追踪更新。** 已接入的环境直接进入控制台，尚未接入则显示安装引导：1. 已经使用 DSH 网页版，可以读取原有环境并绑定原 Key、配置与会话目录；2. 尚未安装，则准备官方 DSH 包，首次使用在网页中输入 Key。后续
+- **自适应安装与持续追踪更新。** 已接入的环境直接进入控制台，尚未接入则显示安装引导：1. 已经使用 DSH 网页版，可以读取原有环境并绑定原 Key、配置与会话目录；2. 尚未安装，则准备官方 DSH 包，首次使用在网页中输入 Key。
 - **网页关了，后台仍然可控。** 解决网页与服务端分离、不便管理的问题：关闭聊天网页后，仍可在控制台检查后台服务、重开网页、停止服务，无须在终端反复输入繁琐命令。
 - **TUI 控制端，极速响应省资源。** 在终端完成日常控制，服务检查和数据读取在后台进行，聊天时也能随时回来查看状态。
 - **一列展示dsh启停进程。** 左侧显示dsh启动的各个进程，清晰展示进程状态和耗时，支持停止、自检、中途重新拉起，随心掌控。
@@ -55,7 +55,7 @@ $PSVersionTable.PSVersion
 
 **Linux：** 打开系统的终端，使用 sh、bash 或 zsh。
 
-**Windows / WSL：** 从开始菜单打开已安装的 Ubuntu，或在 Windows 的 PowerShell 中先查看发行版名称：
+**WSL：** 从开始菜单打开已安装的 Ubuntu，或在 Windows 的 PowerShell 中先查看发行版名称：
 
 ```text
 wsl --list --verbose
@@ -77,7 +77,7 @@ wsl -d Ubuntu-24.04
 irm https://raw.githubusercontent.com/wiFy909/dsh-control/main/bootstrap.ps1 | iex
 ```
 
-**macOS：** 在“终端（Terminal）”中执行下方命令。**Linux / WSL：** 在 Linux 终端或已经进入的 Ubuntu 终端中执行同一条命令：
+**macOS / Linux / WSL：** 在对应终端中执行下方命令：
 
 ```text
 curl -fsSL https://raw.githubusercontent.com/wiFy909/dsh-control/main/install.sh | sh
@@ -91,7 +91,7 @@ dsh-control
 
 若提示“Control 已安装；DSH 接入尚未完成”，按上方错误提示处理，再执行 `dsh-control --setup`。已有 DSH 服务正在运行时，请先用原启动入口停止，再重试接入。
 
-安装需要联网。如果 GitHub、Python 或 npm 下载受到网络限制，需要可用代理。
+> 安装需要联网。如果出现正在拉取但长时间无进展时，需要可用代理。
 
 ## 第一次使用
 
