@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install once, then run dsh-control from any directory.
 set -eu
-release_api='https://api.github.com/repos/wiFy909/dsh-control/releases/tags/v0.3.1'
+release_api='https://api.github.com/repos/wiFy909/dsh-control/releases/tags/v0.3.2'
 task_tmp=$(mktemp -d "${TMPDIR:-/tmp}/dsh-control-install.XXXXXX")
 trap 'rm -rf "$task_tmp"' EXIT HUP INT TERM
 python_cmd=''
@@ -38,7 +38,7 @@ release=json.loads((root/'release.json').read_text())
 assets=[a for a in release['assets'] if a['name']==name and a['state']=='uploaded']
 if len(assets)!=1 or not re.fullmatch(r'sha256:[a-f0-9]{64}',assets[0].get('digest','')):raise SystemExit('发行包缺少有效的 SHA-256 校验记录。')
 asset=assets[0];expected=asset['digest'].split(':')[1]
-if asset['browser_download_url']!='https://github.com/wiFy909/dsh-control/releases/download/v0.3.1/'+name:raise SystemExit('发行包下载地址不匹配。')
+if asset['browser_download_url']!='https://github.com/wiFy909/dsh-control/releases/download/v0.3.2/'+name:raise SystemExit('发行包下载地址不匹配。')
 with urllib.request.urlopen(asset['browser_download_url'],timeout=60) as response:data=response.read(128*1024*1024+1)
 if len(data)>128*1024*1024 or hashlib.sha256(data).hexdigest()!=expected:raise SystemExit('下载校验失败，请重试。')
 archive.write_bytes(data)

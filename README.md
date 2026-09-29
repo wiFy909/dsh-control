@@ -33,7 +33,7 @@
 **Windows：** 打开 PowerShell 7，执行：
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wiFy909/dsh-control/main/install.ps1)))
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wiFy909/dsh-control/main/install.ps1).TrimStart([char]0xFEFF)))
 ```
 
 **macOS / Linux / WSL：** 在对应系统的终端执行：
@@ -111,7 +111,7 @@ dsh-control
 Windows PowerShell 7：
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wiFy909/dsh-control/main/install.ps1))) --replace-dsh
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wiFy909/dsh-control/main/install.ps1).TrimStart([char]0xFEFF))) --replace-dsh
 ```
 
 macOS / Linux / WSL：

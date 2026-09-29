@@ -42,6 +42,18 @@ class UserInstallTests(unittest.TestCase):
                                   env={**os.environ,'DSH_CONTROL_NO_PAUSE':'1'},timeout=15)
             self.assertEqual(result.returncode,7,result.stdout+result.stderr)
 
+    @unittest.skipUnless(shutil.which('pwsh'), 'Requires PowerShell 7')
+    def test_readme_powershell_command_accepts_utf8_bom_and_forwards_arguments(self):
+        readme=(Path(__file__).resolve().parents[1]/'README.md').read_text()
+        command=next(line for line in readme.splitlines() if line.startswith('& ([scriptblock]'))
+        # Invoke-RestMethod can preserve the UTF-8 signature in a response string.
+        response="param([Parameter(ValueFromRemainingArguments=$true)][string[]]$InstallerArgs) 'BOM_OK:' + ($InstallerArgs -join ',')"
+        fixture="function Invoke-RestMethod { return ([char]0xFEFF + '"+response.replace("'", "''")+"') }\n"
+        result=subprocess.run([shutil.which('pwsh'),'-NoProfile','-Command',fixture+command+' --control-only --no-path'],
+                              capture_output=True,text=True,timeout=20)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn('BOM_OK:--control-only,--no-path',result.stdout)
+
     def release(self,root):
         source=root/'download';source.mkdir()
         files={'requirements.lock':b'fixture','core/dsh_control.py':b'',
