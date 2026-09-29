@@ -13,7 +13,7 @@ from textual.widgets import Select
 from dsh_control_app.app import ControlApp
 from dsh_control_app.backend import Backend
 from dsh_control_app.onboarding_screen import OnboardingScreen
-from dsh_control_app.onboarding import check
+from dsh_control_app.onboarding import check, runtime_kind
 from dsh_control_app.particles import ParticleField
 
 SCRIPT=Path(__file__).resolve().parents[1]/'scripts/prepare-wsl-tui.py'
@@ -105,7 +105,7 @@ class FlowTests(unittest.TestCase):
                     self.assertEqual(screen.phase,'title')
                     await pilot.press('space');await pilot.pause(.35)
                     self.assertEqual(screen.phase,'platform')
-                    await pilot.click('#platform-windows')
+                    await pilot.click('#platform-'+('mac' if runtime_kind()=='windows' else 'windows'))
                     await pilot.click('#installation-done');await pilot.pause(.3)
                     self.assertEqual(screen.phase,'install')
                     self.assertIn('不一致',screen.query_one('#check-status').render().plain)

@@ -56,7 +56,7 @@ class TerminalArtTests(unittest.TestCase):
         for depth in ('256','truecolor'):
             code=("from rich.console import Console; "
                   "from dsh_control_app.terminal_art import terminal_frame; "
-                  f"Console(width=72,color_system={depth!r},force_terminal=True,no_color=False).print(terminal_frame(72,20,welcome=True,title=True))")
+                  f"Console(width=72,color_system={depth!r},force_terminal=True,legacy_windows=False,no_color=False).print(terminal_frame(72,20,welcome=True,title=True))")
             output=subprocess.check_output([sys.executable,'-c',code],text=True)
             self.assertIn('探索未至之境',Text.from_ansi(output).plain)
             self.assertNotIn('\x1b_G',output)

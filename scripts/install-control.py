@@ -44,6 +44,9 @@ def unpack(archive,destination):
         if sum(i.file_size for i in z.infolist())>LIMIT:raise ValueError('发行包解压体积超限')
         seen=set()
         for info in z.infolist():
+            # ZipInfo normalizes Windows backslashes in filename on read.
+            # Validate the original archive spelling before normalization.
+            relative(info.orig_filename)
             path=relative(info.filename)
             if info.filename in seen:raise ValueError('发行包存在重复条目')
             seen.add(info.filename)

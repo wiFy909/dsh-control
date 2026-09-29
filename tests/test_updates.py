@@ -18,6 +18,19 @@ from dsh_control_app.onboarding import runtime_kind
 RELEASE={'version':'0.1.7-rc.2','node':'Node.js 24+','source':'https://registry.npmjs.org/@deepseek-ai%2fdsh/latest','checked_at':'fixture'}
 
 
+async def settled_click(pilot, selector):
+    # Textual ignores clicks during the button's 200 ms active animation.
+    button = pilot.app.screen.query_one(selector)
+    for _ in range(40):
+        if not button.has_class('-active'):
+            break
+        await pilot.pause(.05)
+    assert not button.has_class('-active'), selector
+    await pilot.click(selector)
+    await pilot.app.workers.wait_for_complete()
+    await pilot.pause()
+
+
 class ReleaseLookupTests(unittest.TestCase):
     def test_reads_official_package_latest_and_rejects_failed_or_invalid_response(self):
         conn=MagicMock();reply=conn.getresponse.return_value;reply.status=200
@@ -104,17 +117,17 @@ class UpdateScreenTests(unittest.TestCase):
                     self.assertNotIsInstance(app.screen,UpdateScreen)
                     self.assertIn('停止',backend.result)
                     with patch('core.dsh_control.Controller.status',return_value={'state':'stopped','ready':False}),patch('dsh_control_app.update_screen.latest_release',return_value=RELEASE) as lookup:
-                        await pilot.press('5');await pilot.pause(.1)
+                        await pilot.press('5');await app.workers.wait_for_complete();await pilot.pause()
                         screen=app.screen;self.assertIsInstance(screen,UpdateScreen)
                         self.assertEqual(len(screen.query('.platform-card')),4)
                         for kind in ('windows','wsl','linux','mac'):
-                            await pilot.click('#update-'+kind)
+                            await settled_click(pilot,'#update-'+kind)
                             self.assertIn('@deepseek-ai/dsh@0.1.7-rc.2',screen.commands)
                             self.assertEqual(screen.query_one('#update-done').disabled,kind!=runtime_kind())
-                            await pilot.click('#update-back')
-                        await pilot.click('#update-refresh');await pilot.pause(.1)
+                            await settled_click(pilot,'#update-back')
+                        await settled_click(pilot,'#update-refresh')
                         self.assertEqual(lookup.call_count,2)
-                        await pilot.click('#update-back')
+                        await settled_click(pilot,'#update-back')
                         self.assertIs(app.screen,app.screen_stack[0])
         asyncio.run(scenario())
 
@@ -126,15 +139,15 @@ class UpdateScreenTests(unittest.TestCase):
                     app.pop_screen();await pilot.pause()
                     backend.config={'instance_id':'fixture','home':tmp,'version':'0.1.5-rc.3','port':39000}
                     with patch('dsh_control_app.update_screen.latest_release',side_effect=[RELEASE,ControlError('network','网络失败'),{**RELEASE,'version':'0.1.8'}]):
-                        app.push_screen(UpdateScreen(backend));await pilot.pause(.1)
+                        app.push_screen(UpdateScreen(backend));await pilot.pause();await app.workers.wait_for_complete();await pilot.pause()
                         screen=app.screen
-                        await pilot.click('#update-'+runtime_kind())
+                        await settled_click(pilot,'#update-'+runtime_kind())
                         self.assertTrue(screen.commands)
-                        await pilot.click('#update-refresh');await pilot.pause(.1)
+                        await settled_click(pilot,'#update-refresh')
                         self.assertEqual(screen.commands,'')
                         self.assertTrue(screen.query_one('#update-copy').disabled)
                         self.assertTrue(screen.query_one('#update-done').disabled)
-                        await pilot.click('#update-refresh');await pilot.pause(.1)
+                        await settled_click(pilot,'#update-refresh')
                         self.assertIn('@deepseek-ai/dsh@0.1.8',screen.commands)
         asyncio.run(scenario())
 

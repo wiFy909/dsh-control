@@ -99,6 +99,7 @@ class UsageTests(unittest.TestCase):
         with sqlite3.connect(old) as db:
             db.execute('CREATE TABLE usage (scope TEXT,session TEXT,seq INTEGER,time INTEGER,tokens INTEGER,cost REAL,model TEXT,PRIMARY KEY(scope,session,seq))')
             db.execute('INSERT INTO usage VALUES (?,?,?,?,?,?,?)',('fixture','old',1,AT,600,.123,'deepseek-flash'))
+        db.close()
         ledger=Ledger(old,'fixture')
         self.assertTrue(old.with_suffix('.pre-20260924.bak').exists())
         with ledger.connect() as db:

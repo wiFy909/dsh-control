@@ -20,6 +20,7 @@ from pathlib import Path
 import re
 import secrets
 import shlex
+import shutil
 import signal
 import socket
 import subprocess
@@ -376,6 +377,12 @@ def open_url(url):
     commands += [['open' if sys.platform == 'darwin' else 'xdg-open', url]]
     for command in commands:
         try:
+            # Resolve PATH explicitly: Windows CreateProcess otherwise searches
+            # system directories before PATH, unlike our other command probes.
+            executable = shutil.which(command[0])
+            if executable is None:
+                continue
+            command[0] = executable
             if subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                               stdin=subprocess.DEVNULL, timeout=3).returncode == 0:
                 return True
@@ -1096,7 +1103,13 @@ def main(argv=None):
     args = parser.parse_args(argv)
     controller = Controller(args.state_dir, args.timeout)
     if args.action == '_serve':
-        return serve(controller, args.instance)
+        try:
+            return serve(controller, args.instance)
+        except (ControlError, OSError, ValueError, KeyError) as exc:
+            RuntimeJournal(controller.folder(args.instance)).record(
+                'supervisor_failed', code=getattr(exc, 'code', type(exc).__name__),
+                errno=getattr(exc, 'errno', None), winerror=getattr(exc, 'winerror', None))
+            raise
     if args.action == 'request':
         try:
             request = json.load(sys.stdin)

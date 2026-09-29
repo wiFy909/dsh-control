@@ -147,7 +147,10 @@ class Fixture(unittest.TestCase):
             return sock.getsockname()[1]
 
     def call(self, action, **kwargs):
-        return self.controller.execute({'action': action, 'instance_id': self.iid, 'open_browser': False, **kwargs})
+        result = self.controller.execute({'action': action, 'instance_id': self.iid, 'open_browser': False, **kwargs})
+        if not result['ok'] and any(f['code'] == 'startup_failed' for f in result['findings']):
+            result['fixture_runtime_events'] = [c.read_json(p) for p in self.controller.folder(self.iid).glob('runtime-*.json')]
+        return result
 
     def tearDown(self):
         if hasattr(self, 'controller'):
@@ -312,7 +315,10 @@ class Fixture(unittest.TestCase):
         second = self.call('restart')
         self.assertTrue(second['ok'], second)
         self.assertNotEqual(first, second['evidence']['pid'])
-        self.assertEqual((self.home / 'stops').read_text(), 'stop\n')
+        self.assertIsNone(c.proc_identity(first))
+        self.assertEqual((self.home / 'starts').read_text(), 'start\nstart\n')
+        if os.name != 'nt':
+            self.assertEqual((self.home / 'stops').read_text(), 'stop\n')
 
     def test_concurrent_start_has_single_writer(self):
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:

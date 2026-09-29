@@ -63,7 +63,7 @@ class StaticWelcomeTests(unittest.TestCase):
     def test_truecolor_preserves_muted_palette(self):
         from rich.text import Text
         from io import StringIO
-        stream=StringIO();console=Console(file=stream,force_terminal=True,legacy_windows=False,_environ={'TERM':'xterm-256color','COLORTERM':'truecolor'})
+        stream=StringIO();console=Console(file=stream,force_terminal=True,legacy_windows=False,color_system='truecolor',_environ={'TERM':'xterm-256color','COLORTERM':'truecolor'})
         console.print(Text('panel',style='on #0b1729'))
         self.assertIn('48;2;11;23;41',stream.getvalue())
         self.assertEqual(console.color_system,'truecolor')
