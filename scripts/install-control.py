@@ -78,7 +78,7 @@ def provision(source,app):
         command=[str(python),'-m','pip','install','--disable-pip-version-check','-q','--timeout','20','--retries','1','--require-hashes','-r',str(source/'requirements.lock')]
         if (source/'wheelhouse').is_dir():command+=['--no-index','--find-links',str(source/'wheelhouse')]
         subprocess.run(command,check=True)
-    subprocess.run([str(python),'-I','-c','import textual, yaml, keyring, zstandard, PIL, psutil'],check=True)
+    subprocess.run([str(python),'-X','utf8','-I','-c','import textual, yaml, keyring, zstandard, PIL, psutil'],check=True)
     atomic(env/'READY',key.encode())
     return python
 
@@ -134,10 +134,10 @@ def install(source,app,bin_dir,replace_dsh=False,update_path=True):
         python=provision(release,app)
         runner=release/'run_control.py'
         atomic(runner,b'import sys\nfrom pathlib import Path\nsys.path.insert(0,str(Path(__file__).resolve().parent))\nfrom dsh_control_app.app import main\nraise SystemExit(main())\n')
-        info=json.loads(subprocess.check_output([str(python),'-I',str(runner),'--build-info'],cwd=app,text=True))
+        info=json.loads(subprocess.check_output([str(python),'-X','utf8','-I',str(runner),'--build-info'],cwd=app,text=True))
         if not Path(info['loaded_module']).is_relative_to(release):raise ValueError('程序未从独立安装目录加载')
         launcher=app/'launch.py'
-        atomic(launcher,b'import json,os,sys\nfrom pathlib import Path\nr=json.loads((Path(__file__).parent/"current.json").read_text())\na=sys.argv[1:]\nif a and a[0].lower()=="control":a=a[1:]\nos.execv(r["python"],[r["python"],"-I",r["runner"],*a])\n')
+        atomic(launcher,b'import json,os,sys\nfrom pathlib import Path\nr=json.loads((Path(__file__).parent/"current.json").read_text())\na=sys.argv[1:]\nif a and a[0].lower()=="control":a=a[1:]\nos.execv(r["python"],[r["python"],"-X","utf8","-I",r["runner"],*a])\n')
         record={'purpose':'dsh-control-user-install-v1','python':str(python),'runner':str(runner),'release':str(release),'build_id':info['build_id']}
         current=app/'current.json'
         if current.exists():atomic(app/'previous.json',current.read_bytes())
@@ -151,7 +151,7 @@ def install(source,app,bin_dir,replace_dsh=False,update_path=True):
                 backup=app/'previous-commands'/(name+suffix)
                 if not backup.exists():atomic(backup,target.read_bytes())
             if os.name=='nt':
-                command='@echo off\r\nsetlocal DisableDelayedExpansion\r\n"'+str(python).replace('%','%%')+'" -I "'+str(launcher).replace('%','%%')+'" %*\r\n'
+                command='@echo off\r\nsetlocal DisableDelayedExpansion\r\n"'+str(python).replace('%','%%')+'" -X utf8 -I "'+str(launcher).replace('%','%%')+'" %*\r\n'
             else:command='#!/bin/sh\nexec '+shlex.quote(str(python))+' -I '+shlex.quote(str(launcher))+' "$@"\n'
             atomic(target,command.encode());target.chmod(0o755)
         if update_path:register_path(bin_dir)
@@ -192,7 +192,7 @@ def main():
     print('安装完成。重新打开终端，在任意目录输入 dsh-control'+(' 或 dsh' if args.replace_dsh else '')+'。')
     print('构建：'+record['build_id'])
     if not args.control_only:
-        command=[record['python'],'-I',record['runner'],'--setup']
+        command=[record['python'],'-X','utf8','-I',record['runner'],'--setup']
         if args.dsh_home:command+=['--dsh-home',args.dsh_home]
         result=subprocess.run(command)
         if result.returncode:

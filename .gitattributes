@@ -4,5 +4,8 @@
 *.py text eol=lf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
+*.svg text eol=lf
+*.json text eol=lf
+*.txt text eol=lf
 *.png binary
 tests/golden/** whitespace=-blank-at-eol,-blank-at-eof

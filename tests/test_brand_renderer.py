@@ -12,6 +12,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from rich.cells import cell_len
+from PIL import Image
 from dsh_control_app.brand_renderer import ASSETS, detect, diagnostics, plan, render, welcome_size, welcome_caption_columns
 from dsh_control_app.app import ControlApp, main
 from dsh_control_app.backend import Backend
@@ -51,8 +52,17 @@ class BrandRendererTests(unittest.TestCase):
         mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
         with tempfile.TemporaryDirectory() as tmp:
             mod.build(Path(tmp))
-            for name in ('small.png','medium.png','hero.png','manifest.json'):
-                self.assertEqual((Path(tmp)/name).read_bytes(),(ASSETS/name).read_bytes())
+            rebuilt=json.loads((Path(tmp)/'manifest.json').read_text())
+            self.assertEqual(rebuilt['source_sha256'],manifest['source_sha256'])
+            self.assertEqual(rebuilt['compiler'],manifest['compiler'])
+            self.assertEqual(set(rebuilt['lods']),set(manifest['lods']))
+            for lod in manifest['lods']:
+                name=lod+'.png'
+                with Image.open(Path(tmp)/name) as fresh, Image.open(ASSETS/name) as stored:
+                    self.assertEqual((fresh.size,fresh.mode),(stored.size,stored.mode))
+                    self.assertEqual(fresh.tobytes(),stored.tobytes())
+                for folder,metadata in ((Path(tmp),rebuilt),(ASSETS,manifest)):
+                    self.assertEqual(hashlib.sha256((folder/name).read_bytes()).hexdigest(),metadata['lods'][lod]['sha256'])
 
     def test_runtime_renderer_matrix_and_fallback(self):
         from dsh_control_app.brand_renderer import choose_mode

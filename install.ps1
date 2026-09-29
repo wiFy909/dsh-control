@@ -1,4 +1,4 @@
-param([Parameter(ValueFromRemainingArguments=$true)][string[]]$InstallerArgs)
+﻿param([Parameter(ValueFromRemainingArguments=$true)][string[]]$InstallerArgs)
 $ErrorActionPreference = 'Stop'
 $releaseUrl = 'https://github.com/wiFy909/dsh-control/releases/download/v0.3.0'
 $python = $null
@@ -40,7 +40,7 @@ try {
         }
     }
     if ($PSScriptRoot -and (Test-Path (Join-Path $PSScriptRoot 'MANIFEST.json'))) {
-        & $python -I (Join-Path $PSScriptRoot 'scripts/install-control.py') --source $PSScriptRoot @InstallerArgs
+        & $python -X utf8 -I (Join-Path $PSScriptRoot 'scripts/install-control.py') --source $PSScriptRoot @InstallerArgs
         if ($LASTEXITCODE -ne 0) { throw '安装或 DSH 接入未完成，请处理上方提示后重试。' }
         return
     }
@@ -52,6 +52,6 @@ try {
     $expected = ($matches[0] -split '\s+')[0]
     if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLower() -ne $expected) { throw '下载校验失败。' }
     Expand-Archive $archive -DestinationPath (Join-Path $tempDir 'source')
-    & $python -I (Join-Path $tempDir 'source/scripts/install-control.py') --archive $archive --sha256 $expected @InstallerArgs
+    & $python -X utf8 -I (Join-Path $tempDir 'source/scripts/install-control.py') --archive $archive --sha256 $expected @InstallerArgs
     if ($LASTEXITCODE -ne 0) { throw '安装未完成，请保留上方错误信息后重试。' }
 } finally { Remove-Item -LiteralPath $tempDir -Recurse -Force }

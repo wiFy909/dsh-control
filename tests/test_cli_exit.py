@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import sysconfig
 import tempfile
 import unittest
 
@@ -33,7 +34,7 @@ class CliExitTests(unittest.TestCase):
             environment = {name: os.environ[name] for name in inherited if name in os.environ}
             environment.update(HOME=str(home), USERPROFILE=str(home),
                                PYTHONPATH=os.pathsep.join((str(base), str(ROOT))))
-            console = Path(sys.executable).with_name('dsh-control' + ('.exe' if os.name == 'nt' else ''))
+            console = Path(sysconfig.get_path('scripts')) / ('dsh-control' + ('.exe' if os.name == 'nt' else ''))
             self.assertTrue(console.is_file(), f'console script missing: {console}')
             for entry in ((sys.executable, '-m', 'dsh_control_app.app'), (str(console),)):
                 for mode, expected in (('normal', 0), ('handoff', 42),

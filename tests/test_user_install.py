@@ -60,7 +60,9 @@ class UserInstallTests(unittest.TestCase):
             root=Path(tmp)
             for name in ('../escape','/absolute','C:/escape','folder\\escape'):
                 archive=root/'bad.zip'
-                with zipfile.ZipFile(archive,'w') as z:z.writestr(name,b'bad')
+                with zipfile.ZipFile(archive,'w') as z:
+                    info=zipfile.ZipInfo('placeholder');info.filename=name
+                    z.writestr(info,b'bad')
                 with self.assertRaises(ValueError):installer.unpack(archive,root/'out')
             with zipfile.ZipFile(root/'link.zip','w') as z:
                 info=zipfile.ZipInfo('link');info.external_attr=0o120777<<16;z.writestr(info,'outside')

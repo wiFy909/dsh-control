@@ -1,4 +1,6 @@
 """Isolated regression suite; never uses the user's DSH HOME or model provider."""
+import atexit
+from functools import lru_cache
 import concurrent.futures
 import contextlib
 import hashlib
@@ -80,10 +82,23 @@ class ControlFrameTests(unittest.TestCase):
                 left.close();right.close()
 
 
+@lru_cache(maxsize=1)
+def windows_browser_fixture():
+    temporary = tempfile.TemporaryDirectory(prefix='dsh-browser-fixture-')
+    atexit.register(temporary.cleanup)
+    root = Path(temporary.name)
+    source = root/'Browser.cs'
+    source.write_text('class Browser { static int Main(string[] args) { return 0; } }')
+    compiler = Path(os.environ['SystemRoot'])/'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
+    output = root/'rundll32.exe'
+    subprocess.run([str(compiler), '/nologo', '/out:'+str(output), str(source)],check=True,capture_output=True)
+    return output
+
+
 class Fixture(unittest.TestCase):
     def setUp(self):
         # Short AF_UNIX paths on macOS too. Runtime files stay inside this private tree.
-        self.temp = tempfile.TemporaryDirectory(prefix='dc-', dir='/tmp')
+        self.temp = tempfile.TemporaryDirectory(prefix='dc-', dir=None if os.name=='nt' else '/tmp')
         self.root = Path(self.temp.name).resolve()
         self.install = self.root / 'installation'
         self.home = self.root / 'home 非默认'
@@ -93,7 +108,10 @@ class Fixture(unittest.TestCase):
         self.entry.parent.mkdir(parents=True)
         self.entry.write_text(FAKE_DSH)
         (self.candidate / 'package-lock.json').write_text('{}')
-        (self.install / 'current').symlink_to(self.candidate)
+        if os.name == 'nt':
+            subprocess.run(['cmd.exe','/c','mklink','/J',str(self.install/'current'),str(self.candidate)],check=True,capture_output=True)
+        else:
+            (self.install / 'current').symlink_to(self.candidate)
         self.node = shutil.which('node')
         if not self.node:
             self.skipTest('Node required only for isolated fixture tests')
@@ -112,6 +130,8 @@ class Fixture(unittest.TestCase):
             p = self.fakebin / name
             p.write_text('#!/bin/sh\nexit 0\n')
             p.chmod(0o755)
+        if os.name == 'nt':
+            shutil.copyfile(windows_browser_fixture(),self.fakebin/'rundll32.exe')
         self.env = patch.dict(os.environ, {'PATH': str(self.fakebin) + os.pathsep + os.environ['PATH'], 'HOME': str(self.root / 'account')})
         self.env.start()
         # Do not let a fixture open Windows browsers when tests run inside WSL.
@@ -491,7 +511,7 @@ class Protocol(unittest.TestCase):
         self.assertEqual(a['HOME'],'/fixture')
         self.assertEqual(a['TEMP'],'/tmp/fixture')
         self.assertEqual(a['LC_ALL'],'zh_CN.UTF-8')
-        self.assertTrue(a['PATH'].startswith('/opt/node/bin' + os.pathsep))
+        self.assertTrue(a['PATH'].startswith(str(Path('/opt/node/bin')) + os.pathsep))
         windows = c.managed_environment(
             {'node':r'C:\node\node.exe','home':r'C:\dsh','credential_env':['DEEPSEEK_API_KEY']},
             {'Path':r'C:\Windows\System32','SystemRoot':r'C:\Windows',
@@ -514,6 +534,7 @@ class Protocol(unittest.TestCase):
                     'http://127.0.0.1:3456/', 'http://127.0.0.1:3456/?x=1#x'):
             self.assertIsNone(c.startup_url('dsh web: ' + url, 3456))
 
+    @unittest.skipIf(os.name == 'nt', 'Linux procfs permission behavior; Windows uses psutil')
     def test_zombie_fd_denial_is_distinct_from_live_permission_denial(self):
         with patch.object(c.sys, 'platform', 'linux'), \
              patch.object(Path, 'read_text', return_value='header\n'), \

@@ -23,7 +23,7 @@ import test_control as fixtures
 
 class AdaptiveTests(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory(prefix='da-', dir='/tmp')
+        self.tmp = tempfile.TemporaryDirectory(prefix='da-', dir=None if os.name=='nt' else '/tmp')
         self.root = Path(self.tmp.name).resolve()
         self.home = self.root/'home'
         self.home.mkdir()
@@ -125,7 +125,7 @@ class AdaptiveTests(unittest.TestCase):
         ctl=Controller(state,timeout=8)
         try:
             with patch.dict(os.environ,{'DEEPSEEK_API_KEY':'sk-fixture-launch'}):
-                result=ctl.execute({'action':'start','instance_id':bound['instance_id']})
+                result=ctl.execute({'action':'start','instance_id':bound['instance_id'],'open_browser':False})
             self.assertTrue(result['ok'],result)
             observed=json.loads((self.home/'observed-env.json').read_text())
             self.assertEqual(observed['DSH_HOME'],str(self.home))

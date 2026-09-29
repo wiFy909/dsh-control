@@ -698,7 +698,7 @@ class Controller:
         self.validate_runtime(config)
         folder = self.folder(config['instance_id'])
         self.emit(2, 'active', '正在创建受管进程')
-        daemon = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), '_serve',
+        daemon = subprocess.Popen([sys.executable, '-X', 'utf8', str(Path(__file__).resolve()), '_serve',
                                    '--state-dir', str(self.base), '--instance', config['instance_id']],
                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                                   stderr=subprocess.DEVNULL, start_new_session=True,

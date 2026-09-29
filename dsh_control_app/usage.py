@@ -1,6 +1,7 @@
 """Local, deduplicated token ledger; estimates are never official account charges."""
 from __future__ import annotations
 from datetime import datetime, timedelta, date
+from contextlib import contextmanager, closing
 from pathlib import Path
 from zoneinfo import ZoneInfo
 import hashlib
@@ -110,7 +111,7 @@ class Ledger:
             if missing:
                 backup = self.path.with_suffix('.pre-20260924.bak')
                 if not backup.exists():
-                    with sqlite3.connect(backup) as target: db.backup(target)
+                    with closing(sqlite3.connect(backup)) as target: db.backup(target)
                     backup.chmod(0o600)
                 for key,kind in missing.items(): db.execute(f'ALTER TABLE usage ADD COLUMN {key} {kind}')
                 db.execute('UPDATE usage SET legacy_cost=cost, cost=NULL, price_rule=? WHERE price_rule IS NULL',
@@ -119,8 +120,14 @@ class Ledger:
         except OSError: pass
         self.notes = []
 
+    @contextmanager
     def connect(self):
-        return sqlite3.connect(self.path, timeout=10)
+        db = sqlite3.connect(self.path, timeout=10)
+        try:
+            with db:
+                yield db
+        finally:
+            db.close()
 
     @staticmethod
     def boundary_hashes(path, size):

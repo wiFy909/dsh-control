@@ -19,9 +19,10 @@ from dsh_control_app.particles import ParticleField
 SCRIPT=Path(__file__).resolve().parents[1]/'scripts/prepare-wsl-tui.py'
 spec=importlib.util.spec_from_file_location('prepare_wsl_tui',SCRIPT)
 prepare=importlib.util.module_from_spec(spec)
-spec.loader.exec_module(prepare)
+if os.name != 'nt': spec.loader.exec_module(prepare)
 
 
+@unittest.skipIf(os.name == 'nt', 'WSL runtime preparation runs inside Linux, not Windows')
 class RecoveryTests(unittest.TestCase):
     def test_concurrent_prepare_serializes_same_release(self):
         with tempfile.TemporaryDirectory(prefix='dsh-r2-lock-') as temp:

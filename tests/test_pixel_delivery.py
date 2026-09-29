@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 import threading
 import time
@@ -18,6 +19,7 @@ from dsh_control_app.app import ControlApp
 from dsh_control_app.backend import Backend
 from dsh_control_app.onboarding_screen import OnboardingScreen
 from dsh_control_app.usage import TZ
+from dsh_control_app.onboarding import runtime_kind
 
 
 class TargetFixture(unittest.TestCase):
@@ -36,7 +38,10 @@ class TargetFixture(unittest.TestCase):
         entry.parent.mkdir(parents=True)
         entry.write_text(fixtures.FAKE_DSH)
         (candidate/'package-lock.json').write_text('{}')
-        (install/'current').symlink_to(candidate)
+        if os.name == 'nt':
+            subprocess.run(['cmd.exe','/c','mklink','/J',str(install/'current'),str(candidate)],check=True,capture_output=True)
+        else:
+            (install/'current').symlink_to(candidate)
         c.atomic_json(install/'MANAGED_INSTALL.json',{'current':str(candidate),'version':'fixture-b',
                     'lock_sha256':c.sha(candidate/'package-lock.json')})
         definition=self.root/'deployment-b.json'
@@ -54,7 +59,7 @@ class TargetFixture(unittest.TestCase):
         backend.bind();self.assertEqual(backend.instance,self.iid)
         backend.run('start')
         self.assertEqual(self.controller.status(self.config)['state'],'running')
-        backend.save_binding(config_b,platform_id='mac')
+        backend.save_binding(config_b,platform_id=runtime_kind())
         self.assertEqual(backend.instance,config_b['instance_id'])
         self.assertIsNone(backend.definition)
         backend.run('start');backend.run('open')
@@ -73,13 +78,13 @@ class TargetFixture(unittest.TestCase):
         backend=Backend(self.controller.base,definition=str(self.definition),timeout=8)
         backend.bind();old=backend.instance;generation=backend.target_generation
         with patch('dsh_control_app.backend.atomic_json',side_effect=OSError('fixture disk')):
-            with self.assertRaises(OSError):backend.save_binding(config_b,platform_id='mac')
+            with self.assertRaises(OSError):backend.save_binding(config_b,platform_id=runtime_kind())
         self.assertEqual(backend.instance,old)
         self.assertEqual(backend.target_generation,generation)
         self.assertFalse(backend.binding_path.exists())
         backend.cancel_pending_binding()
         with self.assertRaises(ControlError):
-            backend.save_binding(config_b,platform_id='mac',expected_generation=generation)
+            backend.save_binding(config_b,platform_id=runtime_kind(),expected_generation=generation)
         self.assertEqual(backend.instance,old)
 
     def test_new_controller_reattaches_healthy_changed_disk(self):
@@ -155,7 +160,7 @@ class TargetFixture(unittest.TestCase):
                     with patch('dsh_control_app.app.scan',side_effect=slow):
                         app.refresh_data()
                         self.assertTrue(await asyncio.to_thread(started.wait,2))
-                        backend.save_binding(config_b,platform_id='mac')
+                        backend.save_binding(config_b,platform_id=runtime_kind())
                         release.set()
                         for _ in range(50):
                             await pilot.pause(.1)
