@@ -1,6 +1,6 @@
 <p align="center"><img src="assets/hero.svg" alt="DSH Control：让 DSH 的日常使用更简单" width="1080"></p>
 
-<p align="center"><a href="#快速开始">快速开始</a> · <a href="#第一次使用">第一次使用</a> · <a href="#每天怎么用">日常操作</a> · <a href="https://github.com/wiFy909/dsh-control/releases">下载安装包</a></p>
+<p align="center"><a href="#快速开始">快速开始</a> · <a href="#第一次使用">第一次使用</a> · <a href="#每天怎么用">日常操作</a></p>
 
 **DSH Control 是 DeepSeek Harness 的终端控制台。** 安装一次，之后在任意目录输入 `dsh-control`，就能启动或停止服务、重新打开聊天网页、检查运行状态，以及查看插件、技能、MCP 和用量信息。
 
@@ -26,44 +26,72 @@
 
 ## 快速开始
 
-提供两种安装方式：**一行命令安装**，或**下载 Release 安装包**。Windows、macOS、Linux 都需要先安装 [Node.js 24 或更新版本](https://nodejs.org/en/download)（含 npm），然后重新打开终端。WSL 请在其 Linux 环境内安装和运行。Windows 安装 Node.js 时，无须勾选 **Automatically install the necessary tools / Tools for Native Modules**；该可选项会额外安装 Chocolatey、Python 和 Visual Studio Build Tools，并非安装 Control 的前置步骤。
+Windows、macOS、Linux 都需要先安装 [Node.js 24 或更新版本](https://nodejs.org/en/download)（含 npm），再按下面三步完成安装。使用 WSL 时，请在其 Linux 环境内安装 Node.js 和 DSH Control。
 
-### 方式一：一行命令安装
+> **Windows 用户请使用 PowerShell 7。** 可以打开 [Microsoft Store](https://www.microsoft.com/store/apps/9MZ1SNWT0N5D)，搜索并安装 Microsoft 发布的 **PowerShell** 稳定版。安装后，从开始菜单打开 **PowerShell 7**，或重新打开终端后输入 `pwsh` 启动；使用 Windows Terminal 时，选择 PowerShell 7 对应的标签页。系统自带的 **Windows PowerShell 5.1** 和 **命令提示符（CMD）** 是不同的入口，版本检查方法见第 2 步。安装 Node.js 时，无须勾选 **Automatically install the necessary tools / Tools for Native Modules** 额外开发工具选项。
 
-**Windows：** 打开 PowerShell 7，执行：
+### 第 1 步：安装并检查 Node.js
 
-```powershell
+通过上方 Node.js 官网链接，选择对应系统的安装方式。安装完成后，重新打开终端，依次执行：
+
+```text
+node --version
+npm --version
+```
+
+第一条应显示 `v24.x.x` 或更高版本，第二条应显示 npm 的版本号。如果提示找不到命令，先检查 Node.js 是否安装完成，并关闭、重新打开终端后再试。WSL 用户需选择 Linux 安装方式，Windows 中安装的 Node.js 不能替代这一步。
+
+### 第 2 步：确认终端入口
+
+**Windows：** 在准备使用的 PowerShell 窗口中执行：
+
+```text
+$PSVersionTable.PSVersion
+```
+
+确认输出中 `Major` 为 `7`。如果显示 `5`，当前是 Windows PowerShell 5.1；如果在 CMD 中提示无法识别该命令，请按上方灰色提示安装并打开 PowerShell 7，再检查一次。仅打开“Windows Terminal”这个窗口，并不代表其中运行的是 PowerShell 7。
+
+**macOS：** 打开“终端（Terminal）”，使用默认的 zsh 或 bash。
+
+**Linux：** 打开系统的终端，使用 sh、bash 或 zsh。
+
+**Windows / WSL：** 从开始菜单打开已安装的 Ubuntu，或在 Windows 的 PowerShell 中先查看发行版名称：
+
+```text
+wsl --list --verbose
+```
+
+然后进入对应发行版。例如，列表中名称为 `Ubuntu-24.04` 时执行：
+
+```text
+wsl -d Ubuntu-24.04
+```
+
+请将示例名称换成列表中实际的发行版名称；尚未安装 WSL 时，先按 [微软 WSL 安装说明](https://learn.microsoft.com/zh-cn/windows/wsl/install)完成安装。进入 Ubuntu 后，重新执行第 1 步的两条版本检查，再运行 `node -p "process.platform"`，确认输出为 `linux`，然后使用下方的 Linux / WSL 安装命令。后续安装、启动和使用都在这个 Linux 终端中进行。
+
+### 第 3 步：执行安装命令
+
+**Windows：** 在已确认版本的 PowerShell 7 中执行：
+
+```text
 irm https://raw.githubusercontent.com/wiFy909/dsh-control/main/bootstrap.ps1 | iex
 ```
 
-**macOS / Linux / WSL：** 在对应系统的终端执行：
+**macOS：** 在“终端（Terminal）”中执行下方命令。**Linux / WSL：** 在 Linux 终端或已经进入的 Ubuntu 终端中执行同一条命令：
 
-```sh
+```text
 curl -fsSL https://raw.githubusercontent.com/wiFy909/dsh-control/main/install.sh | sh
 ```
 
-安装器下载并校验对应平台的发行包，准备 Control 的独立运行环境，再识别原 DSH 环境或安装官方最新 DSH 包。自动选择兼容的 Python；仅有不兼容版本或未安装 Python 时，会准备 Python 3.12，无须手动配置。安装需要联网，不需要管理员权限。若 GitHub、Python 或 npm 下载受网络限制，需要可用的代理；下方 ZIP 同样是联网安装包，不能绕过后续依赖下载。
+安装完成后，重新打开对应系统的终端，在任意目录输入：
 
-
-### 方式二：下载 Release 安装包
-
-打开 [GitHub Releases](https://github.com/wiFy909/dsh-control/releases/latest)，按系统下载，并将**整个 ZIP 完整解压到普通文件夹**。不要在 WinRAR 或压缩包预览窗口中直接双击安装文件：
-
-| 系统 | 安装包 | 安装操作 |
-|---|---|---|
-| macOS | `dsh-control-macos.zip` | 双击 `Install DSH Control.command`；也可在解压目录运行 `sh install.sh`。 |
-| Windows | `dsh-control-windows.zip` | 完整解压后，在文件夹内双击 `Install DSH Control.cmd`。 |
-| Linux / WSL | `dsh-control-linux.zip` | 在解压目录运行 `sh install.sh`。 |
-
-三个包使用同一套控制台代码，安装器按系统准备运行环境；它们是联网安装包，安装后不必保留解压目录。
-
-两种方式安装成功后，**重新打开终端**，在任意目录输入：
-
-```sh
+```text
 dsh-control
 ```
 
 若提示“Control 已安装；DSH 接入尚未完成”，按上方错误提示处理，再执行 `dsh-control --setup`。已有 DSH 服务正在运行时，请先用原启动入口停止，再重试接入。
+
+安装需要联网。如果 GitHub、Python 或 npm 下载受到网络限制，需要可用代理。
 
 ## 第一次使用
 
@@ -108,23 +136,23 @@ dsh-control
 
 **我想直接输入 `dsh` 打开 Control。** 默认保留已有 `dsh` 命令；如需替换用户命令目录中的入口，安装时明确追加选项：
 
-Windows：下载并完整解压 Windows 安装包，在解压目录打开 PowerShell，执行：
+Windows PowerShell 7：下载安装脚本并附加选项执行：
 
-```powershell
-& ".\Install DSH Control.cmd" --replace-dsh
+```text
+$installer = Join-Path $env:TEMP "dsh-control-install.ps1"
+Invoke-WebRequest https://raw.githubusercontent.com/wiFy909/dsh-control/main/bootstrap.ps1 -OutFile $installer
+pwsh -NoProfile -ExecutionPolicy Bypass -File $installer --replace-dsh
 ```
 
 macOS / Linux / WSL：
 
-```sh
+```text
 curl -fsSL https://raw.githubusercontent.com/wiFy909/dsh-control/main/install.sh | sh -s -- --replace-dsh
 ```
 
 旧启动脚本会备份到 Control 程序目录的 `previous-commands`，官方 DSH 不会被卸载。
 
 **旧 `npx` 命令提示 `EALLOWREMOTE`？** 这是 npm 拒绝远程 tarball，重新安装 Node.js 开发工具不能解决它。请改用上方 PowerShell / shell 安装命令，无须修改全局 npm 策略。
-
-**双击安装提示解压不完整或找不到 `install.ps1`？** 请关闭压缩包预览，完整解压全部文件后再运行文件夹中的安装入口。
 
 **WSL 卸载时资源管理器提示找不到路径？** 请在 Ubuntu 终端中按下方的卸载范围操作，避免从 Windows 资源管理器逐项删除 Linux 的符号链接；先停止服务并保留 DSH 数据目录。
 
@@ -138,7 +166,7 @@ PATH 清理方法：
 
 - **Mac/Linux：** zsh 检查 `~/.zprofile`、`~/.zshrc`；bash 或其他 shell 检查 `~/.profile`、`~/.bashrc`。运行下面的命令定位安装器追加的 `# DSH Control user commands`，用文本编辑器打开对应文件，删除该注释和紧随其后的 `export PATH=...` 一行，保存并重新打开终端。若 `~/.local/bin` 还供其他工具使用，请保留这一 PATH 设置。
 
-  ```sh
+  ```text
   grep -n -A 1 'DSH Control user commands' ~/.zprofile ~/.zshrc ~/.profile ~/.bashrc 2>/dev/null
   ```
 
