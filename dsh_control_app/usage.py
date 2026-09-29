@@ -33,7 +33,10 @@ EXPIRES = date(2026, 10, 24)
 EFFECTIVE = date(2026, 8, 17)
 PRICE_RULE_ID = 'deepseek-cny-20260817-holidays2026-reviewed-20260925'
 UNPRICED_RULE_ID = PRICE_RULE_ID + ':unpriced'
-PARSER_REVISION = 'accounting-20260927-1'
+PARSER_REVISION = 'accounting-20260930-v4'
+# DSH 0.2 v4 adds surface/delivery events; accounting still comes exclusively
+# from assistant messages, attempts and compaction summaries, as in v2/v3.
+SUPPORTED_LOG_VERSIONS = (2, 3, 4)
 RATES = {'deepseek-flash': (.02, 1., 4.), 'deepseek-v4-pro': (.15, 4.5, 13.5)}
 ALIASES = {'deepseek-v4-flash': 'deepseek-flash', 'deepseek-v4-flash-vision-exp': 'deepseek-flash'}
 
@@ -163,8 +166,8 @@ class Ledger:
                     break
         with self.connect() as db:
             for version, path in groups.values():
-                if version not in (2,3):
-                    self.notes.append('存在尚未支持的历史日志格式')
+                if version not in SUPPORTED_LOG_VERSIONS:
+                    self.notes.append(f'会话日志 v{version} 暂未支持，该会话未计入；请更新 DSH Control')
                     continue
                 try:
                     st = path.stat()
@@ -246,6 +249,8 @@ class Ledger:
             return self.parse(raw, version,allow_tail=allow_tail)
 
     def parse(self, stream, version, resume=None, allow_tail=False):
+        if version not in SUPPORTED_LOG_VERSIONS:
+            raise ValueError('unsupported_version')
         if resume is None:
             first = stream.readline(65537)
             header = json.loads(first)
