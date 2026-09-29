@@ -76,6 +76,8 @@ jobs:
               --verify-tag --draft --title "DSH Control $RELEASE_TAG" \
               --notes-file assets/RELEASE_NOTES.md
           fi
-          gh api "repos/$GH_REPO/releases/tags/$RELEASE_TAG" > "$RUNNER_TEMP/release-assets.json"
+          # The tag endpoint excludes unpublished drafts; resolve the release ID.
+          release_id=$(gh release view "$RELEASE_TAG" --json databaseId --jq .databaseId)
+          gh api "repos/$GH_REPO/releases/$release_id" > "$RUNNER_TEMP/release-assets.json"
           python scripts/check-release.py --tag "$RELEASE_TAG" --published-assets "$RUNNER_TEMP/release-assets.json"
           gh release edit "$RELEASE_TAG" --draft=false --latest
