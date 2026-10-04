@@ -30,7 +30,8 @@ const home = process.env.DSH_HOME;
 fs.appendFileSync(home + '/starts', 'start\n');
 fs.writeFileSync(home + '/observed-env.json', JSON.stringify(Object.fromEntries(
  ['PATH','HOME','TEMP','DSH_HOME','DSH_TELEMETRY_DISABLED','DEEPSEEK_API_KEY','ANTHROPIC_API_KEY',
-  'OPENAI_API_KEY','AWS_SECRET_ACCESS_KEY','DSH_CONTROL_TEST_KEY']
+  'OPENAI_API_KEY','AWS_SECRET_ACCESS_KEY','DSH_CONTROL_TEST_KEY','DISPLAY','WAYLAND_DISPLAY',
+  'XAUTHORITY','DBUS_SESSION_BUS_ADDRESS','XDG_CURRENT_DESKTOP','XDG_SESSION_TYPE']
  .map(name => [name, process.env[name] ?? null]))));
 const server = http.createServer((req,res)=>{
  if(req.url.includes('token=') || req.headers.cookie === 'fixture=ok') {
@@ -446,6 +447,9 @@ class Fixture(unittest.TestCase):
         fake = {'OPENAI_API_KEY':'FAKE_OPENAI','ANTHROPIC_API_KEY':'FAKE_ANTHROPIC',
                 'AWS_SECRET_ACCESS_KEY':'FAKE_AWS',
                 'DSH_CONTROL_TEST_KEY':'FAKE_TEST','DEEPSEEK_API_KEY':'FAKE_DEEPSEEK',
+                'DISPLAY':':1','WAYLAND_DISPLAY':'wayland-1','XAUTHORITY':'/fixture/.Xauthority',
+                'DBUS_SESSION_BUS_ADDRESS':'unix:path=/run/user/1000/bus',
+                'XDG_CURRENT_DESKTOP':'Hyprland','XDG_SESSION_TYPE':'wayland',
                 'TEMP':str(self.root / 'temp')}
         with patch.dict(os.environ, fake):
             result = self.call('start')
@@ -458,6 +462,9 @@ class Fixture(unittest.TestCase):
         self.assertEqual(observed['DSH_TELEMETRY_DISABLED'],'1')
         self.assertEqual(observed['HOME'],str(self.root / 'account'))
         self.assertEqual(observed['TEMP'],fake['TEMP'])
+        for name in ('DISPLAY','WAYLAND_DISPLAY','XAUTHORITY','DBUS_SESSION_BUS_ADDRESS',
+                     'XDG_CURRENT_DESKTOP','XDG_SESSION_TYPE'):
+            self.assertEqual(observed[name],fake[name])
         self.assertTrue(observed['PATH'])
 
     def test_managed_child_gets_only_explicit_credential(self):
@@ -531,6 +538,10 @@ class Protocol(unittest.TestCase):
     def test_managed_environment_isolates_instances_and_windows_basics(self):
         parent = {'PATH':'/usr/bin','HOME':'/fixture','TEMP':'/tmp/fixture',
                   'LC_ALL':'zh_CN.UTF-8','LC_SECRET_TOKEN':'FAKE_HIDDEN',
+                  'DISPLAY':':1','WAYLAND_DISPLAY':'wayland-1','XAUTHORITY':'/fixture/.Xauthority',
+                  'DBUS_SESSION_BUS_ADDRESS':'unix:path=/run/user/1000/bus',
+                  'XDG_CURRENT_DESKTOP':'Hyprland','XDG_SESSION_TYPE':'wayland',
+                  'HYPRLAND_INSTANCE_SIGNATURE':'fixture_hyprland',
                   'OPENAI_API_KEY':'FAKE_OPENAI','AWS_SECRET_ACCESS_KEY':'FAKE_AWS',
                   'DSH_CONTROL_TEST_KEY':'FAKE_TEST','A_KEY':'FAKE_A','B_KEY':'FAKE_B'}
         base = {'node':'/opt/node/bin/node','home':'/dsh/home'}
@@ -546,6 +557,10 @@ class Protocol(unittest.TestCase):
         self.assertEqual(a['HOME'],'/fixture')
         self.assertEqual(a['TEMP'],'/tmp/fixture')
         self.assertEqual(a['LC_ALL'],'zh_CN.UTF-8')
+        for name in ('DISPLAY','WAYLAND_DISPLAY','XAUTHORITY','DBUS_SESSION_BUS_ADDRESS',
+                     'XDG_CURRENT_DESKTOP','XDG_SESSION_TYPE'):
+            self.assertEqual(a[name],parent[name])
+        self.assertNotIn('HYPRLAND_INSTANCE_SIGNATURE',a)
         self.assertTrue(a['PATH'].startswith(str(Path('/opt/node/bin')) + os.pathsep))
         windows = c.managed_environment(
             {'node':r'C:\node\node.exe','home':r'C:\dsh','credential_env':['DEEPSEEK_API_KEY']},
