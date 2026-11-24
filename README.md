@@ -1,5 +1,7 @@
 # DSH Control
 
+<p align="center"><img src="assets/hero.svg" alt="DSH Control：让 DSH 的日常使用更简单" width="1080"></p>
+
 DeepSeek Harness（DSH）的第三方终端控制台。用 `dsh-control` 启停服务、打开聊天网页、查看运行状态和用量。
 
 ## 快速开始
@@ -29,6 +31,8 @@ dsh-control
 
 ## 第一次使用
 
+![从打开控制台到停止服务并退出的操作流程](assets/workflow.svg)
+
 1. 看到鲸鱼画面后，按 **Enter** 进入。若出现安装引导，选择实际运行的系统，按提示在对应终端执行 `dsh-control --setup`，再回到引导页点击 **安装完毕**。
 2. 点击 **1 启动**，浏览器会打开 DSH 聊天网页。首次安装 DSH 时，在网页中填写模型 API Key。接入已有 DSH 环境后可沿用原 Key。
 
@@ -39,6 +43,8 @@ dsh-control
 - 更新 DSH 时，先停止服务，再点击 **5 更新**，按界面提示完成安装并确认接入。
 
 ## 项目亮点
+
+![DSH Control 的服务管理、用量统计和版本更新](assets/why.svg)
 
 - **一处管理服务。** 启停、重开网页、自检和版本更新都在同一个终端界面，支持鼠标和快捷键。
 - **沿用已有环境。** 接入已有 DSH 时，可保留原配置、Key 和会话。新装使用 DeepSeek 官方 DSH 包。
