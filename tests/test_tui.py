@@ -126,8 +126,8 @@ class UsageTests(unittest.TestCase):
         self.assertEqual(period(datetime(2026,9,25,10,tzinfo=TZ))[0],'空闲')
         holiday=int(datetime(2026,9,25,10,tzinfo=TZ).timestamp()*1000)
         self.assertAlmostEqual(fee('deepseek-flash',holiday,USAGE),.000906)
-        self.assertIsNone(fee('deepseek-flash',int(datetime(2026,10,25,10,tzinfo=TZ).timestamp()*1000),USAGE))
-        self.assertEqual(period(datetime(2026,10,25,10,tzinfo=TZ)),
+        self.assertAlmostEqual(fee('deepseek-flash',int(datetime(2026,11,23,10,tzinfo=TZ).timestamp()*1000),USAGE),.001812)
+        self.assertEqual(period(datetime(2026,12,23,10,tzinfo=TZ)),
                          ('价格规则已过期','金额暂不可可靠估算'))
         self.assertIn('已过期',period(datetime(2027,1,1,tzinfo=TZ))[0])
 

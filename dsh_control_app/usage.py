@@ -1,9 +1,8 @@
 """Local, deduplicated token ledger; estimates are never official account charges."""
 from __future__ import annotations
-from datetime import datetime, timedelta, date
 from contextlib import contextmanager, closing
+from datetime import datetime, timedelta
 from pathlib import Path
-from zoneinfo import ZoneInfo
 import hashlib
 import io
 import json
@@ -13,73 +12,74 @@ import time
 import math
 import zstandard
 
-TZ = ZoneInfo('Asia/Shanghai')
-PRICE_SOURCE = 'https://api-docs.deepseek.com/zh-cn/quick_start/pricing/'
-HOLIDAY_SOURCE = 'https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm'
-HOLIDAY_YEAR = 2026
-# State Council 2026 holiday schedule. Make-up weekends stay off-peak under
-# DeepSeek's explicit Monday-Friday rule; holiday weekdays are off-peak too.
-HOLIDAYS = (
-    (date(2026, 1, 1), date(2026, 1, 3)),
-    (date(2026, 2, 15), date(2026, 2, 23)),
-    (date(2026, 4, 4), date(2026, 4, 6)),
-    (date(2026, 5, 1), date(2026, 5, 5)),
-    (date(2026, 6, 19), date(2026, 6, 21)),
-    (date(2026, 9, 25), date(2026, 9, 27)),
-    (date(2026, 10, 1), date(2026, 10, 7)),
-)
-VERIFIED = date(2026, 9, 25)
-EXPIRES = date(2026, 10, 24)
-EFFECTIVE = date(2026, 8, 17)
-PRICE_RULE_ID = 'deepseek-cny-20260817-holidays2026-reviewed-20260925'
-UNPRICED_RULE_ID = PRICE_RULE_ID + ':unpriced'
+from .pricing import BUNDLED_PRICES, EFFECTIVE, FLASH_EFFECTIVE, HOLIDAYS, TZ
+
+PRICE_RULE_ID = BUNDLED_PRICES.revision
 PARSER_REVISION = 'accounting-20260930-v4'
 # DSH 0.2 v4 adds surface/delivery events; accounting still comes exclusively
 # from assistant messages, attempts and compaction summaries, as in v2/v3.
 SUPPORTED_LOG_VERSIONS = (2, 3, 4)
-RATES = {'deepseek-flash': (.02, 1., 4.), 'deepseek-v4-pro': (.15, 4.5, 13.5)}
-ALIASES = {'deepseek-v4-flash': 'deepseek-flash', 'deepseek-v4-flash-vision-exp': 'deepseek-flash'}
 
 
-def peak(at):
+def peak(at, terms=None):
     at = at.astimezone(TZ)
-    day = at.date()
-    if day.year != HOLIDAY_YEAR:
+    if at.year not in HOLIDAYS:
         raise ValueError('holiday schedule is not available for this year')
-    return (at.weekday() < 5 and not any(start <= day <= end for start, end in HOLIDAYS)
-            and (9 <= at.hour < 12 or 14 <= at.hour < 18))
+    holiday = any(at.month == month and start <= at.day <= end
+                  for month, start, end in HOLIDAYS[at.year])
+    if terms is None:
+        terms = BUNDLED_PRICES.terms_at(at)
+    minute = at.hour * 60 + at.minute
+    return (terms is not None and at.weekday() < 5 and not holiday
+            and any(start <= minute < end for start, end in terms['hours']))
 
 
-def period(now=None):
+def period(now=None, prices=BUNDLED_PRICES):
     now = (now or datetime.now(TZ)).astimezone(TZ)
-    if now.date() > EXPIRES:
-        return '价格规则已过期', '金额暂不可可靠估算'
-    if now.date() < EFFECTIVE:
+    if now < EFFECTIVE:
         return '价格规则待生效', '—'
-    current = peak(now)
-    cursor = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-    for _ in range(24 * 15):
-        if peak(cursor) != current:
-            remaining = max(0, int((cursor - now).total_seconds()))
-            return ('高峰' if current else '空闲'), f'{remaining//3600:02}:{remaining%3600//60:02}:{remaining%60:02}'
-        cursor += timedelta(hours=1)
-    return ('高峰' if current else '空闲'), '—'
+    if now.year not in HOLIDAYS:
+        return '节假日规则待核实', '金额暂不可可靠估算'
+    terms = prices.terms_at(now)
+    if terms is None:
+        return '价格规则已过期', '金额暂不可可靠估算'
+    current = peak(now, terms)
+    phase = '高峰' if current else '空闲'
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    for days in range(15):
+        day = midnight + timedelta(days=days)
+        for minute in (0, *(minute for interval in terms['hours'] for minute in interval)):
+            edge = day + timedelta(minutes=minute)
+            if edge <= now:
+                continue
+            edge_terms = prices.terms_at(edge)
+            if edge_terms != terms:
+                return phase, '—'
+            if peak(edge, terms) != current:
+                remaining = int((edge - now).total_seconds())
+                return phase, f'{remaining//3600:02}:{remaining%3600//60:02}:{remaining%60:02}'
+    return phase, '—'
 
 
-def fee(model, timestamp, usage, provider='deepseek'):
+def fee(model, timestamp, usage, provider='deepseek', prices=BUNDLED_PRICES):
     try:
         at = datetime.fromtimestamp(timestamp / 1000, TZ)
     except (OverflowError, OSError, ValueError, TypeError):
         return None
-    if provider not in ('deepseek','deepseek-official') or not EFFECTIVE <= at.date() <= EXPIRES:
+    terms = prices.terms_at(at)
+    if provider not in ('deepseek', 'deepseek-official') or terms is None:
         return None
-    rate = RATES.get(ALIASES.get(model, model))
-    if not rate or 'cacheReadTokens' not in usage or usage.get('cacheWriteTokens', 0):
+    canonical = terms['aliases'].get(model, model)
+    if canonical == 'deepseek-flash' and at < FLASH_EFFECTIVE:
         return None
-    values = [usage.get(k) for k in ('cacheReadTokens','inputTokens','outputTokens')]
+    rates = terms['rates'].get(canonical)
+    if not rates or 'cacheReadTokens' not in usage or usage.get('cacheWriteTokens', 0):
+        return None
+    values = [usage.get(k) for k in ('cacheReadTokens', 'inputTokens', 'outputTokens')]
     if any(type(v) is not int or v < 0 for v in values):
         return None
-    return sum(v*r for v,r in zip(values,rate)) * (2 if peak(at) else 1) / 1_000_000
+    rate = rates[1] if peak(at, terms) else rates[0]
+    return sum(v * r for v, r in zip(values, rate)) / 1_000_000
 
 
 class Ledger:
@@ -89,10 +89,11 @@ class Ledger:
     session atomically. Highest format generation wins; inherited fork prefix is
     excluded. A malformed or incomplete log retains the last good observation.
     """
-    def __init__(self, path, scope):
+    def __init__(self, path, scope, prices=BUNDLED_PRICES):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.scope = scope
+        self.prices = prices
         with self.connect() as db:
             db.executescript('''CREATE TABLE IF NOT EXISTS usage (
                 scope TEXT, session TEXT, seq INTEGER, time INTEGER, tokens INTEGER,
@@ -233,13 +234,13 @@ class Ledger:
             rows=db.execute('''SELECT scope,session,seq,time,model,provider,input_tokens,
                               cache_read_tokens,output_tokens,cache_write_tokens FROM usage
                               WHERE scope=? AND input_tokens IS NOT NULL
-                              AND (price_rule IS NULL OR price_rule NOT IN (?,?))''',
-                            (self.scope,PRICE_RULE_ID,UNPRICED_RULE_ID)).fetchall()
+                              AND (price_rule IS NULL OR price_rule != ?)''',
+                            (self.scope,self.prices.revision)).fetchall()
             for scope,session,seq,at,model,provider,inp,cache,out,write in rows:
                 amount=fee(model,at,{'inputTokens':inp,'cacheReadTokens':cache,'outputTokens':out,
-                                     'cacheWriteTokens':write or 0},provider)
+                                     'cacheWriteTokens':write or 0},provider,self.prices)
                 db.execute('UPDATE usage SET cost=?,price_rule=? WHERE scope=? AND session=? AND seq=?',
-                           (amount,PRICE_RULE_ID if amount is not None else UNPRICED_RULE_ID,scope,session,seq))
+                           (amount,self.prices.revision,scope,session,seq))
 
     def read(self, path, version, allow_tail=False):
         with path.open('rb') as raw:
@@ -333,10 +334,10 @@ class Ledger:
             if not isinstance(sample_model,str) or not isinstance(sample_provider,str):
                 partial=True
                 continue
-            amount=fee(sample_model,timestamp,usage,sample_provider)
+            amount=fee(sample_model,timestamp,usage,sample_provider,self.prices)
             rows.append((self.scope,session,seq,timestamp,token,amount,sample_model[:100],sample_provider[:100],
                          usage.get('inputTokens'),usage.get('cacheReadTokens'),usage.get('outputTokens'),
-                         PRICE_RULE_ID if amount is not None else UNPRICED_RULE_ID,usage.get('cacheWriteTokens',0)))
+                         self.prices.revision,usage.get('cacheWriteTokens',0)))
         if seeded:
             if inherited is None: raise ValueError('missing_inherited_cut')
             rows = [r for r in rows if r[2]>inherited]

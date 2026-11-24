@@ -1,5 +1,6 @@
 """Official version lookup, generated platform commands and explicit upgrade binding."""
 import asyncio
+from datetime import datetime
 import hashlib
 import json
 from pathlib import Path
@@ -14,7 +15,9 @@ from dsh_control_app.backend import Backend
 from dsh_control_app.update_screen import UpdateScreen
 from dsh_control_app.updates import latest_release, compare_versions, target_prefix, update_commands, verify_update
 from dsh_control_app.onboarding import runtime_kind
+from dsh_control_app.pricing import TZ
 
+PRICE_CHECKED = datetime(2026, 11, 23, 18, tzinfo=TZ)
 RELEASE={'version':'0.1.7-rc.2','node':'Node.js 24+','source':'https://registry.npmjs.org/@deepseek-ai%2fdsh/latest','checked_at':'fixture'}
 
 
@@ -73,6 +76,11 @@ class ReleaseLookupTests(unittest.TestCase):
 
 
 class UpdateScreenTests(unittest.TestCase):
+    def setUp(self):
+        pricing = patch('dsh_control_app.update_screen.refresh_prices', return_value=PRICE_CHECKED)
+        self.refresh_prices = pricing.start()
+        self.addCleanup(pricing.stop)
+
     def test_six_actions_center_labels_and_fit_viewports(self):
         async def scenario():
             with tempfile.TemporaryDirectory() as tmp:
@@ -127,6 +135,9 @@ class UpdateScreenTests(unittest.TestCase):
                             await settled_click(pilot,'#update-back')
                         await settled_click(pilot,'#update-refresh')
                         self.assertEqual(lookup.call_count,2)
+                        self.assertEqual(self.refresh_prices.call_count,2)
+                        self.refresh_prices.assert_called_with(backend.controller.base)
+                        self.assertIn('价格规则 · 官网已核验', screen.query_one('#update-status').render().plain)
                         await settled_click(pilot,'#update-back')
                         self.assertIs(app.screen,app.screen_stack[0])
         asyncio.run(scenario())
@@ -138,13 +149,18 @@ class UpdateScreenTests(unittest.TestCase):
                 async with app.run_test(size=(80,24)) as pilot:
                     app.pop_screen();await pilot.pause()
                     backend.config={'instance_id':'fixture','home':tmp,'version':'0.1.5-rc.3','port':39000}
+                    self.refresh_prices.side_effect = [OSError('offline'), PRICE_CHECKED, PRICE_CHECKED]
                     with patch('dsh_control_app.update_screen.latest_release',side_effect=[RELEASE,ControlError('network','网络失败'),{**RELEASE,'version':'0.1.8'}]):
                         app.push_screen(UpdateScreen(backend));await pilot.pause();await app.workers.wait_for_complete();await pilot.pause()
                         screen=app.screen
                         await settled_click(pilot,'#update-'+runtime_kind())
                         self.assertTrue(screen.commands)
+                        self.assertIn('价格规则 · 核验失败', screen.query_one('#update-status').render().plain)
                         await settled_click(pilot,'#update-refresh')
                         self.assertEqual(screen.commands,'')
+                        status=screen.query_one('#update-status').render().plain
+                        self.assertIn('价格规则 · 官网已核验', status)
+                        self.assertIn('网络失败', status)
                         self.assertTrue(screen.query_one('#update-copy').disabled)
                         self.assertTrue(screen.query_one('#update-done').disabled)
                         await settled_click(pilot,'#update-refresh')
@@ -159,10 +175,12 @@ class UpdateScreenTests(unittest.TestCase):
                     app.pop_screen();await pilot.pause()
                     backend.config={'instance_id':'fixture','home':tmp,'version':'0.2.0','port':39000}
                     with patch('dsh_control_app.update_screen.latest_release',return_value=RELEASE):
-                        app.push_screen(UpdateScreen(backend));await pilot.pause(.1)
-                        await pilot.click('#update-'+runtime_kind())
+                        await app.push_screen(UpdateScreen(backend))
+                        await settled_click(pilot,'#update-'+runtime_kind())
                         self.assertEqual(app.screen.commands,'')
                         self.assertTrue(app.screen.query_one('#update-done').disabled)
+                        self.refresh_prices.assert_called_once_with(backend.controller.base)
+                        self.assertIn('价格规则 · 官网已核验', app.screen.query_one('#update-status').render().plain)
         asyncio.run(scenario())
 
 
@@ -190,7 +208,8 @@ class UpgradeBindingTests(unittest.TestCase):
             sentinel=self.home/'keep.txt';sentinel.write_text('local settings and sessions preserved')
             backend=Backend(self.controller.base,self.iid);backend.bind()
             app=ControlApp(backend,no_animation=True)
-            with patch('dsh_control_app.update_screen.latest_release',return_value=RELEASE):
+            with (patch('dsh_control_app.update_screen.latest_release',return_value=RELEASE),
+                  patch('dsh_control_app.update_screen.refresh_prices',return_value=PRICE_CHECKED)):
                 async with app.run_test(size=(120,30)) as pilot:
                     app.pop_screen();await pilot.pause();app.background_ready=True
                     app.push_screen(UpdateScreen(backend));await pilot.pause(.1)

@@ -1,4 +1,7 @@
-"""Four-platform update instructions with fresh official release lookup."""
+"""Official DSH version and pricing lookups, with four-platform update instructions."""
+import http.client
+import sqlite3
+
 from textual import work
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
@@ -6,6 +9,7 @@ from textual.widgets import Button, Static
 from rich.text import Text
 
 from .onboarding import RECIPES, runtime_kind
+from .pricing import HOLIDAYS, refresh_prices
 from .updates import compare_versions, latest_release, target_prefix, update_commands, verify_update
 
 
@@ -22,6 +26,8 @@ class UpdateScreen(Screen):
         self.commands=''
         self.generation=0
         self.checking=False
+        self.release_status=''
+        self.price_status=''
 
     def compose(self):
         with Vertical(id='update-root'):
@@ -48,20 +54,48 @@ class UpdateScreen(Screen):
 
     def on_unmount(self):self.generation+=1
 
-    def status(self,message):self.query_one('#update-status',Static).update(Text(message))
+    def status(self,message):
+        self.release_status=message
+        self.paint_status()
+
+    def paint_status(self):
+        status='\n'.join(filter(None, (self.release_status, self.price_status)))
+        self.query_one('#update-status',Static).update(Text(status))
 
     def refresh_release(self):
         if self.checking:return
         self.generation+=1;self.release=None;self.commands=''
+        self.price_status='价格规则 · 正在查询 DeepSeek 官网…'
         self.status('正在查询官方 npm 最新版本…')
         self.render_selection()
         self.lookup(self.generation)
+        self.lookup_prices(self.generation)
 
     @work(thread=True,group='update-lookup',exclusive=True)
     def lookup(self,generation):
         try:release=latest_release();error=None
         except Exception as exc:release=None;error=getattr(exc,'message','官方版本查询失败，请重试。')
         self.app.call_from_thread(self.receive_release,release,error,generation)
+
+    @work(thread=True, group='price-lookup', exclusive=True)
+    def lookup_prices(self, generation):
+        try:
+            checked = refresh_prices(self.backend.controller.base)
+        except (OSError, http.client.HTTPException, ValueError, sqlite3.Error):
+            checked = None
+        self.app.call_from_thread(self.receive_prices, checked, generation)
+
+    def receive_prices(self, checked, generation):
+        if generation != self.generation or not self.is_mounted:
+            return
+        if checked is None:
+            self.price_status='价格规则 · 核验失败，保留上次核验记录。'
+        else:
+            self.price_status=f"价格规则 · 官网已核验 {checked:%Y-%m-%d %H:%M} 北京时间"
+            if checked.year not in HOLIDAYS:
+                self.price_status+=' · 当年节假日规则待核实'
+            self.app.refresh_data()
+        self.paint_status()
 
     def receive_release(self,release,error,generation):
         if generation!=self.generation or not self.is_mounted:return

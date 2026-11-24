@@ -19,6 +19,7 @@ from .account import Account
 from .backend import Backend, environment
 from .inventory import scan, clean
 from .usage import Ledger, period, TZ
+from .pricing import BUNDLED_PRICES, load_prices
 from .whale import Whale
 
 class Updated(Message): pass
@@ -108,6 +109,7 @@ class ControlApp(App):
         self.inventory=scan(None)
         self.usage=None
         self.ledger=None
+        self.prices=BUNDLED_PRICES
         self.exit_checking=False
         self.operation_pending=False
         self.selected='plugins'
@@ -252,13 +254,16 @@ class ControlApp(App):
             scope=instance+':'+hashlib.sha256('\n'.join(roots).encode()).hexdigest()[:16] if instance else None
             ledger=self.ledger if self.ledger and self.ledger.scope==scope else None
             usage=None
+            prices=load_prices(self.backend.controller.base)
             if config:
                 if ledger is None:
-                    ledger=Ledger(self.backend.controller.base/'usage.sqlite3',scope)
+                    ledger=Ledger(self.backend.controller.base/'usage.sqlite3',scope,prices)
+                ledger.prices=prices
                 usage=ledger.scan(roots)
                 usage['roots']=roots
             if generation!=self.backend.target_generation:return
             self.ledger=ledger
+            self.prices=prices
             self.usage=usage
             self.inventory=inventory
             self.post_message(Updated())
@@ -390,7 +395,7 @@ class ControlApp(App):
 
     def paint_period(self):
         if not self.is_mounted or not self.query('#billing-phase'): return
-        phase,countdown=period()
+        phase,countdown=period(prices=self.prices)
         label='距离高峰还有' if phase=='空闲' else '距离空闲还有' if phase=='高峰' else ''
         self.update_text('#billing-phase',Text(f'{phase} · 北京时间\n{label}\n{countdown}'))
 

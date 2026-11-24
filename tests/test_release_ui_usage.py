@@ -100,7 +100,9 @@ class ReleaseFlowTests(unittest.TestCase):
                     for kind in ('plugins','skills','mcp'):
                         await pilot.click('#'+kind)
                         self.assertEqual(app.selected,kind)
-        asyncio.run(scenario())
+        with patch('dsh_control_app.usage.datetime', wraps=datetime) as clock:
+            clock.now.return_value = datetime(2026, 9, 23, 10, tzinfo=TZ)
+            asyncio.run(scenario())
 
 if __name__=='__main__':unittest.main()
 
